@@ -1,0 +1,4 @@
+*.o
+*.out
+hamiltonian
+hamiltonian_debug
