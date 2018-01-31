@@ -115,4 +115,3 @@ void MST::Merge(int p, int q, int r)
 	}
 }
 
-

@@ -4,6 +4,17 @@
 #include <math.h>
 #include <stdio.h>
 
+typedef struct{
+    int v1;
+    int v2;
+    int cost;
+}Edge;
+
+typedef struct{
+    Edge* edges;
+    int numEdges;
+}Edges;
+
 class MST
 {
 public:

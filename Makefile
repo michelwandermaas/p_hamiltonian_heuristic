@@ -3,7 +3,7 @@
 # 05/15/16
 
 
-CXX = g++-6 #must support C++11
+CXX = g++ #must support C++11
 
 # sources in alphabetical order
 SOURCES = BinaryHeap.cpp
