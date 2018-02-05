@@ -24,7 +24,7 @@ Edge* generateRandomCompleteGraph(int numVertices){ //non-direction graph
             count++;
         }
     }
-    printf("added %d edges\n", count);
+    //printf("added %d edges\n", count);
     return edges;
 }
 
@@ -111,44 +111,123 @@ Edges getMinCover(Edges edges, int cost){
 	For every edge e(incident to u and v), calculate the new cost Ze, such that Ze = Ce - bv - bu.
 	Create a MST object adding the edges whose cost is greater than 0, and complete the graph with zero-cost-edges
 	*/
+	//printf("Start min cover algorithm");
 	std::set<int> Vp; //Vp = vertices incident to a positive weight edge
-	std::vector<Edge> Ep; //En = edges with at least one endpoint in Vp
+	std::vector<Edge> Ep; //Ep = edges with at least one endpoint in Vp
 	for(int i=0;i<edges.numEdges;i++){
 		if (edges.edges[i].cost > cost){ //this is equivalent to checking if the new cost is greater than zero
 			Vp.insert(edges.edges[i].v1);
 			Vp.insert(edges.edges[i].v2);
 		}
 	}
-
+	std::set<int> V_used(Vp);
 	for(int i=0;i<edges.numEdges;i++){
-		if (Vp.count(edges.edges[i].v1) == 1 || Vp.count(edges.edges[i].v2) == 1) //if one of the endpoints is in Vp
+		if (Vp.count(edges.edges[i].v1) == 1 || Vp.count(edges.edges[i].v2) == 1){ //if one of the endpoints is in Vp
 			Ep.push_back(edges.edges[i]);
+			V_used.insert(edges.edges[i].v1); //add edge if to V_used if not in Vp
+			V_used.insert(edges.edges[i].v2);
+		}
 	}
-	int b_cost[Vp.size()]; //best costs associated to each vertex
+	//printf("Get best costs");
+	int b_cost[V_used.size()]; //best costs associated to each vertex
 	int aux_cost, currVertex;
-	std::vector<int> Vp_vector( Vp.begin(), Vp.end() );
-	for(int i=0;i<Vp.size();i++){
+	std::vector<int> Vp_vector( V_used.begin(), V_used.end() );
+	for(int i=0;i<V_used.size();i++){
 		aux_cost = MAX_COST;
 		currVertex = Vp_vector[i];
 		for(int j=0;j<Ep.size();j++){
-			if (Vp.count(Ep[j].v1) == currVertex || Vp.count(Ep[j].v2) == currVertex) //if one of the endpoints is the current vertex
+			if (Ep[j].v1 == currVertex || Ep[j].v2 == currVertex) //if one of the endpoints is the current vertex
 				if (Ep[j].cost < aux_cost) //if the cost is less than the best one so far
 					aux_cost = Ep[j].cost;
 		}
-		b_cost[i] = aux_cost;
+		//printf("vertex %d b_cost %d\n", Vp_vector[i], aux_cost);
+		b_cost[std::distance(V_used.begin(),V_used.find(currVertex))] = aux_cost; //change according to new index position
 	}
-	int new_cost[Ep.size()];
-	for(int i=0;i<Ep.size();i++){
-		new_cost[i] = Ep[i].cost - b_cost[Ep[i].v1] - b_cost[Ep[i].v2];	
+	int new_cost[V_used.size() + (V_used.size() % 2)][V_used.size() + (V_used.size() % 2)];
+	//initialize all new_costs with zero, therefore completing the graph also
+	for(int i=0;i<V_used.size() + (V_used.size() % 2);i++){
+		for(int j=i+1;j<V_used.size() + (V_used.size() % 2);j++){ //matching expects non-directional edges
+			new_cost[i][j] = 0;
+		}
 	}
-	assert(Vp.size() % 2 == 0); //make sure the number of vertices is even
-	Matching *M = new Matching(Vp.size());
-	//add positive edges
+	//change the costs of the edges if the new cost is less than zero
+	int v1_aux, v2_aux;
 	for(int i=0;i<Ep.size();++i){
-		if (new_cost[i] > 0)
-			M->AddEdge(Ep[i].v1, Ep[i].v2, new_cost[i]);
+		//if (Vp.find(Ep[i].v1) == Vp.end() || Vp.find(Ep[i].v2) == Vp.end()) continue; //if one of the vertices are not in Vp, do not change cost
+		v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
+		v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
+		if (v1_aux > v2_aux) std::swap(v1_aux, v2_aux); //swap the numbers if necessary, since it is nondirectional
+		aux_cost = Ep[i].cost - b_cost[v1_aux] - b_cost[v2_aux];
+		if (aux_cost < 0)
+			new_cost[v1_aux][v2_aux] = aux_cost;
+	}
+	//printf("Vp:\n");
+//	for(int i=0;i<V_used.size();i++){
+//		if (Vp.count(Vp_vector[i]))
+//			printf("%d ", Vp_vector[i]);
+//	}
+	//printf("\nVp size: %d", Vp.size());
+	//assert(Vp.size() % 2 == 0); //make sure the number of vertices is even. it is treated by adding another vertex at the end
+	Matching *M = new Matching((V_used.size()) + ((V_used.size()) % 2)); //possibly add another vertex if not even and include the number of edges not in Vp
+	//add all edges and the new costs
+	for(int i=0;i<V_used.size() + (V_used.size() % 2);i++){
+		for(int j=i+1;j<V_used.size() + (V_used.size() % 2);j++){  //matching expects non-directional edges
+			//printf("Added {%d, %d, %d}\n ", i,j, new_cost[i][j]);
+			M->AddEdge(i, j, new_cost[i][j]); //add the edges that have both endpoints in Vp
+		}
+    }
+
+	M->SolveMinimumCostPerfectMatching();
+	Edges minCover;
+	std::set<int> Vp_left(Vp);
+	minCover.edges = (Edge*) malloc(sizeof(Edge)*Vp.size()-1);
+	int edgesAdded = 0;
+	//printf("\nEdges in matching for min cover\n");
+    for(int i=0;i<Ep.size();++i){
+    	if(Vp.count(Ep[i].v1) && Vp.count(Ep[i].v2)){ //if both vertices are in Vp. otherwise, I do not care about this edge
+			v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
+			v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
+			if (v1_aux > v2_aux) std::swap(v1_aux, v2_aux); //swap the numbers if necessary, since it is nondirectional
+			if (new_cost[v1_aux][v2_aux] < 0){
+				if(M->IsInMatching(v1_aux, v2_aux)){
+					Vp_left.erase(Ep[i].v1);
+					Vp_left.erase(Ep[i].v2);
+					minCover.edges[edgesAdded++] = Ep[i];
+					//printf("{%d, %d, %d, %d}\n ", Ep[i].v1,Ep[i].v2, Ep[i].cost, new_cost[v1_aux][v2_aux]);
+				}
+			}
     	}
-	//add edges to complete the graph
+    }
+	//printf("\n");
+//	for(int i=0;i<edgesAdded;++i){
+//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+//	}
+	//printf("\n");
+	//add minimum edges to complete the graph
+	//printf("Vertices left: ");
+	std::vector<int> Vp_left_vector( Vp_left.begin(), Vp_left.end() );
+//	for(int i=0;i<Vp_left_vector.size();i++){
+//		printf("%d ", Vp_left_vector[i]);
+//	}
+	//printf("\n");
+	while(Vp_left.size() > 0 ){
+		for(int i=0;i<Ep.size();++i){
+			//printf("v1 %d v2 %d begin %d cost %d b_cost %d\n", Ep[i].v1, Ep[i].v2, *Vp_left.begin(), Ep[i].cost, b_cost[std::distance(Vp_left.begin(),Vp_left.find(*Vp_left.begin()))]);
+			if (Ep[i].v1 == *Vp_left.begin() || Ep[i].v2 == *Vp_left.begin()){ //if edge incident to the first vertex
+				if (b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))] == Ep[i].cost){ //if it is the best edge
+					//printf("found\n");
+					Vp_left.erase(*Vp_left.begin());
+					minCover.edges[edgesAdded++] = Ep[i];
+					break;
+				}
+			}
+		}
+		//break;
+	}
+	for(int i=0;i<edgesAdded;++i){
+		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+	}
+	printf("\n");
 }
 
 void printEdges(Edge* edges, int numEdges){
@@ -161,7 +240,7 @@ int main(int argc, char* argv[])
     srand (time(NULL));
 
 	//Número de vértices, TEM que ser par.
-	int n = 10;
+	int n = 20;
 
 	//Instancia-se o objeto passando-se o número de vértices desejado.
 	Matching *M = new Matching(n);
@@ -176,7 +255,7 @@ int main(int argc, char* argv[])
 
     addEdges(allEdges, M);
 
-	M->SolveMinimumCostPerfectMatching();
+    M->SolveMinimumCostPerfectMatching();
 
     /*
      * P-forest algorithm:
@@ -196,14 +275,16 @@ int main(int argc, char* argv[])
      * 			return solution
      */
 
-    ordenarArestas(edges, numEdges);
-    printf("All Edges:\n");
-    printEdges(allEdges);
-    printf("Matching:\n");
-    printEdgesInMatching(edges, numEdges, M);
-    printf("MST:\n");
-    Edges mst = getMST(allEdges, 100);
-    printEdgesSimple(mst);
+//    ordenarArestas(edges, numEdges);
+//    printf("All Edges:\n");
+//    printEdges(allEdges);
+//    printf("Matching:\n");
+//    printEdgesInMatching(edges, numEdges, M);
+//    printf("MST:\n");
+//    Edges mst = getMST(allEdges, 100);
+//    printEdgesSimple(mst);
+
+    getMinCover(allEdges, 95);
 
     //printEdges(edges, numEdges);
 
