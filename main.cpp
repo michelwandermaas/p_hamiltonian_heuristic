@@ -183,7 +183,7 @@ Edges getMinCover(Edges edges, int cost){
 	minCover.edges = (Edge*) malloc(sizeof(Edge)*Vp.size()-1);
 	int edgesAdded = 0;
 	//printf("\nEdges in matching for min cover\n");
-    for(int i=0;i<Ep.size();++i){
+    	for(int i=0;i<Ep.size();++i){
     	if(Vp.count(Ep[i].v1) && Vp.count(Ep[i].v2)){ //if both vertices are in Vp. otherwise, I do not care about this edge
 			v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
 			v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
@@ -233,6 +233,22 @@ Edges getMinCover(Edges edges, int cost){
 void printEdges(Edge* edges, int numEdges){
 	for(int i=0;i<numEdges;++i)
 		printf("%d %d %d\n", edges[i].v1, edges[i].v2, edges[i].cost);
+}
+
+Edges readEdges(char* filename){
+	Graph graph(filename);
+	Edge* edges = (Edge*) malloc (sizeof(Edge) * graph.n * (graph.n-1));
+	Edges edgesReturn;
+	edgesReturn.edges = edges;
+	edgesReturn.numEdges = 	graph.n * (graph.n-1);
+	int numAdded = 0;
+	for(int i=0;i<graph.n;++i){
+		for(int j=i+1;j<graph.n;++j){
+			edgesReturn.edges[numAdded++] = graph.M[i][j];
+		}
+	}
+	assert(numAdded == edgesReturn.numEdges);
+	return edgesReturn;
 }
 
 int main(int argc, char* argv[])
