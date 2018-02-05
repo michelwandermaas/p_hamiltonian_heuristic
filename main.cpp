@@ -7,6 +7,7 @@
 #include <set>
 
 #include "MST.h"
+#include "Graph.h"
 
 #define MAX_COST 100
 #define MIN_COST 1
@@ -180,7 +181,8 @@ Edges getMinCover(Edges edges, int cost){
 	M->SolveMinimumCostPerfectMatching();
 	Edges minCover;
 	std::set<int> Vp_left(Vp);
-	minCover.edges = (Edge*) malloc(sizeof(Edge)*Vp.size()-1);
+	minCover.edges = (Edge*) malloc(sizeof(Edge)*V_used.size()-1);
+	minCover.numEdges = Vp.size()-1;
 	int edgesAdded = 0;
 	//printf("\nEdges in matching for min cover\n");
     	for(int i=0;i<Ep.size();++i){
@@ -224,10 +226,13 @@ Edges getMinCover(Edges edges, int cost){
 		}
 		//break;
 	}
+	printf("%d %d\n", edgesAdded, minCover.numEdges);
+	assert(edgesAdded == minCover.numEdges);
 	for(int i=0;i<edgesAdded;++i){
 		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
 	}
 	printf("\n");
+	return minCover;
 }
 
 void printEdges(Edge* edges, int numEdges){
@@ -244,7 +249,11 @@ Edges readEdges(char* filename){
 	int numAdded = 0;
 	for(int i=0;i<graph.n;++i){
 		for(int j=i+1;j<graph.n;++j){
-			edgesReturn.edges[numAdded++] = graph.M[i][j];
+			Edge edge;
+			edge.v1 = i;
+			edge.v2 = j;
+			edge.cost = graph.M[i][j];
+			edgesReturn.edges[numAdded++] = edge;
 		}
 	}
 	assert(numAdded == edgesReturn.numEdges);
@@ -312,16 +321,16 @@ int main(int argc, char* argv[])
 	I will have to figure out a way to extract the solution out of it.
     */
 
-    /*
+    
     int* uE, vE, c;
     int numVerticesMST;
     int numEdgesMST;
 
     for(int i=0;i<numEdges;++i){
-    	MST* mst = getMST(allEdges, allEdges.edges[i].cost);
-    	Matching* minimumCover = getMinCover(allEdges, allEdges.edges[i].cost);
+    	Edges mst = getMST(allEdges, allEdges.edges[i].cost);
+    	Edges minimumCover = getMinCover(allEdges, allEdges.edges[i].cost);
     }
-    */
+    
 
 
 
