@@ -4,10 +4,19 @@
 #include <math.h>
 #include <stdio.h>
 
-typedef struct{
+typedef struct Edge{
     int v1;
     int v2;
     int cost;
+    friend bool operator==(const Edge& e1, const Edge& e2){
+	return e1.v1 == e2.v1 && e1.v2 == e2.v2;
+    }
+    friend bool operator<(const Edge& e1, const Edge& e2){
+	return e1.cost < e2.cost;
+    }
+    friend bool operator>(const Edge& e1, const Edge& e2){
+	return e1.cost > e2.cost;
+    }
 }Edge;
 
 typedef struct{

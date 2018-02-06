@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <vector>
 #include <set>
+#include <cstdio>
 
 #include "MST.h"
 #include "Graph.h"
@@ -110,12 +111,14 @@ Edges getMST(Edges edges, int cost){
 	MST mst(numVerticesMST, numEdgesMST, uE, vE, c);
 	mst.SolveKruskal();
 
-	result.numEdges = numVerticesMST-1;
-	Edge* edgesResult = new Edge[result.numEdges];
+	Edge* edgesResult = new Edge[numVerticesMST-1];
 	result.edges = edgesResult;
-	for(int i = 0; i < result.numEdges; i++){
-		edgesResult[i] = En[mst.sol[i]];
+	int numEdges = 0;
+	for(int i = 0; i < numVerticesMST-1; i++){
+		if (c[mst.sol[i]] <= cost) //only add nonpositive edges
+			edgesResult[numEdges++] = En[mst.sol[i]];
 	}
+	result.numEdges = numEdges;
 	return result;
 }
 
@@ -134,19 +137,27 @@ Edges getMinCover(Edges edges, int cost){
 
 	Edges minCover; //edge for the the return
 
-	std::set<int> Vp; //Vp = vertices incident to a positive weight edge
-	std::vector<Edge> Ep; //Ep = edges with at least one endpoint in Vp
+	std::set<int> Vn; //Vn = vertices incident to a nonpositive weight edge
 	for(int i=0;i<edges.numEdges;i++){
-		if (edges.edges[i].cost > cost){ //this is equivalent to checking if the new cost is greater than zero
-			Vp.insert(edges.edges[i].v1);
-			Vp.insert(edges.edges[i].v2);
+		if (edges.edges[i].cost <= cost){ //this is equivalent to checking if the new cost is less than or equal to zero
+			Vn.insert(edges.edges[i].v1);
+			Vn.insert(edges.edges[i].v2);
 		}
 	}
+	std::set<int> Vp; //Vp = V - Vn
+	for(int i=0;i<edges.numEdges;i++){
+		if (Vn.count(edges.edges[i].v1) == 0) //edge not in Vn
+			Vp.insert(edges.edges[i].v1);
+		if (Vn.count(edges.edges[i].v2) == 0) //edge not in Vn
+			Vp.insert(edges.edges[i].v2);
+	}
+
+	std::vector<Edge> Ep; //Ep = edges with at least one endpoint in Vp
 	std::set<int> V_used(Vp);
 	for(int i=0;i<edges.numEdges;i++){
 		if (Vp.count(edges.edges[i].v1) == 1 || Vp.count(edges.edges[i].v2) == 1){ //if one of the endpoints is in Vp
 			Ep.push_back(edges.edges[i]);
-			V_used.insert(edges.edges[i].v1); //add edge if to V_used if not in Vp
+			V_used.insert(edges.edges[i].v1); //add edge to V_used if not in Vp
 			V_used.insert(edges.edges[i].v2);
 		}
 	}
@@ -303,14 +314,14 @@ int main(int argc, char* argv[])
     srand (time(NULL));
 
 	//Número de vértices, TEM que ser par.
-	int n = 20;
+	int numVertices = 20;
 
 	//Instancia-se o objeto passando-se o número de vértices desejado.
-	Matching *M = new Matching(n);
+	Matching *M = new Matching(numVertices);
 
-    Edge* edges = generateRandomCompleteGraph(n);
+    Edge* edges = generateRandomCompleteGraph(numVertices);
 
-    int numEdges = (n)*(n-1)/2; //somatorio
+    int numEdges = (numVertices)*(numVertices-1)/2; //somatorio
 
     Edges allEdges;
     allEdges.edges = edges;
@@ -359,24 +370,39 @@ int main(int argc, char* argv[])
 	I will have to figure out a way to extract the solution out of it.
     */
 
+
     
-    int* uE, vE, c;
-    int numVerticesMST;
-    int numEdgesMST;
+	int numTrees;
+	std::cout << "Digite o número de árvores procuradas: ";
+	std::cin >> numTrees;
 
-    for(int i=0;i<numEdges;++i){
-    	printf("Edge num: %d cost: %d\n", i, allEdges.edges[i].cost);
-    	Edges mst = getMST(allEdges, allEdges.edges[i].cost);
-    	printf("MST:\n");
-    	printEdges(mst);
-    	Edges minimumCover = getMinCover(allEdges, allEdges.edges[i].cost);
-    	printf("Min Cover:\n");
-    	printEdges(minimumCover);
-    }
-    
+	int numEdgesNeeded = numVertices - numTrees;
 
 
-
+	for(int i=0;i<numEdges;++i){
+	   std::vector<Edge> solution;
+	   solution.clear();
+	   //printf("Edge num: %d cost: %d\n", i, allEdges.edges[i].cost);
+	   Edges mst = getMST(allEdges, allEdges.edges[i].cost);
+	   for(int k=0;k<mst.numEdges;++k)
+	   	solution.push_back(mst.edges[k]);
+	   //printf("MST:\n");
+	   //printEdges(mst);
+	   Edges minimumCover = getMinCover(allEdges, allEdges.edges[i].cost);
+	   for(int k=0;k<minimumCover.numEdges;++k)
+	   	solution.push_back(minimumCover.edges[k]);
+	   //printf("Min Cover:\n");
+	   //printEdges(minimumCover);
+	   //printf("MST size %d Min Cover size %d solution size %d\n", mst.numEdges, minimumCover.numEdges, solution.size());
+	   //print solution
+	   //printf("num trees: %d\n", numVertices - solution.size()); 
+	   if (solution.size() == numEdgesNeeded){
+	   	for(int k=0;k<solution.size();++k)
+	   		printf("{%d, %d, %d} ", solution[k].v1, solution[k].v2, solution[k].cost);
+	   	break;
+	   }
+	}
+	printf("\n");
 
 	delete M;
 
