@@ -65,15 +65,34 @@ void ordenarArestas(Edge* edges, int numEdges){
 }
 
 Edges getMST(Edges edges, int cost){
+	/*
+	 *      Vn = vertices incident to a nonpositive weight edge
+     * 		En = edges with both endpoints in Vn
+     * 		G1 = MST in Vn over En
+	 */
+	Edges result;
 	std::set<int> Vn; //Vn = vertices incident to a nonpositive weight edge
 	std::vector<Edge> En; //En = edges with both endpoints in Vn
 	for(int i=0;i<edges.numEdges;i++){
 		if (edges.edges[i].cost <= cost){ //this is equivalent to checking if the new cost is less than or equal to zero
 			Vn.insert(edges.edges[i].v1);
 			Vn.insert(edges.edges[i].v2);
+		}
+	}
+
+	for(int i=0;i<edges.numEdges;i++){
+		if (Vn.count(edges.edges[i].v1) == 1 && Vn.count(edges.edges[i].v2) == 1){ //both endpoints in Vn
 			En.push_back(edges.edges[i]);
 		}
 	}
+
+	if (Vn.size() == 0 || En.size() == 0){ //it might never happen
+		printf("Nothing for MST.\n");
+		result.edges = NULL;
+		result.numEdges = 0;
+		return result;
+	}
+
 	//prepare structures to call MST
 	int uE[En.size()], vE[En.size()];
 	double c[En.size()];
@@ -91,7 +110,6 @@ Edges getMST(Edges edges, int cost){
 	MST mst(numVerticesMST, numEdgesMST, uE, vE, c);
 	mst.SolveKruskal();
 
-	Edges result;
 	result.numEdges = numVerticesMST-1;
 	Edge* edgesResult = new Edge[result.numEdges];
 	result.edges = edgesResult;
@@ -113,6 +131,9 @@ Edges getMinCover(Edges edges, int cost){
 	Create a MST object adding the edges whose cost is greater than 0, and complete the graph with zero-cost-edges
 	*/
 	//printf("Start min cover algorithm");
+
+	Edges minCover; //edge for the the return
+
 	std::set<int> Vp; //Vp = vertices incident to a positive weight edge
 	std::vector<Edge> Ep; //Ep = edges with at least one endpoint in Vp
 	for(int i=0;i<edges.numEdges;i++){
@@ -129,6 +150,14 @@ Edges getMinCover(Edges edges, int cost){
 			V_used.insert(edges.edges[i].v2);
 		}
 	}
+
+	if (Vp.size() == 0 || Ep.size() == 0){
+		//printf("Nothing for Min. Cover.\n");
+		minCover.edges = NULL;
+		minCover.numEdges = 0;
+		return minCover;
+	}
+
 	//printf("Get best costs");
 	int b_cost[V_used.size()]; //best costs associated to each vertex
 	int aux_cost, currVertex;
@@ -162,11 +191,14 @@ Edges getMinCover(Edges edges, int cost){
 		if (aux_cost < 0)
 			new_cost[v1_aux][v2_aux] = aux_cost;
 	}
-	//printf("Vp:\n");
+
+//	printf("Vp:\n");
 //	for(int i=0;i<V_used.size();i++){
 //		if (Vp.count(Vp_vector[i]))
 //			printf("%d ", Vp_vector[i]);
 //	}
+//	printf("\n");
+
 	//printf("\nVp size: %d", Vp.size());
 	//assert(Vp.size() % 2 == 0); //make sure the number of vertices is even. it is treated by adding another vertex at the end
 	Matching *M = new Matching((V_used.size()) + ((V_used.size()) % 2)); //possibly add another vertex if not even and include the number of edges not in Vp
@@ -179,13 +211,13 @@ Edges getMinCover(Edges edges, int cost){
     }
 
 	M->SolveMinimumCostPerfectMatching();
-	Edges minCover;
+
 	std::set<int> Vp_left(Vp);
 	minCover.edges = (Edge*) malloc(sizeof(Edge)*V_used.size()-1);
-	minCover.numEdges = Vp.size()-1;
+
 	int edgesAdded = 0;
 	//printf("\nEdges in matching for min cover\n");
-    	for(int i=0;i<Ep.size();++i){
+    for(int i=0;i<Ep.size();++i){
     	if(Vp.count(Ep[i].v1) && Vp.count(Ep[i].v2)){ //if both vertices are in Vp. otherwise, I do not care about this edge
 			v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
 			v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
@@ -201,10 +233,13 @@ Edges getMinCover(Edges edges, int cost){
     	}
     }
 	//printf("\n");
+
+//    printf("Edges by matching: \n");
 //	for(int i=0;i<edgesAdded;++i){
 //		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
 //	}
-	//printf("\n");
+//	printf("\n");
+
 	//add minimum edges to complete the graph
 	//printf("Vertices left: ");
 	std::vector<int> Vp_left_vector( Vp_left.begin(), Vp_left.end() );
@@ -226,12 +261,15 @@ Edges getMinCover(Edges edges, int cost){
 		}
 		//break;
 	}
-	printf("%d %d\n", edgesAdded, minCover.numEdges);
-	assert(edgesAdded == minCover.numEdges);
-	for(int i=0;i<edgesAdded;++i){
-		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-	}
-	printf("\n");
+	//printf("%d %d %d\n", edgesAdded, minCover.numEdges, Vp.size());
+	//assert(edgesAdded == minCover.numEdges);
+	minCover.numEdges = edgesAdded;
+
+//	for(int i=0;i<edgesAdded;++i){
+//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+//	}
+//	printf("\n");
+
 	return minCover;
 }
 
@@ -300,7 +338,7 @@ int main(int argc, char* argv[])
      * 			return solution
      */
 
-//    ordenarArestas(edges, numEdges);
+    ordenarArestas(edges, numEdges);
 //    printf("All Edges:\n");
 //    printEdges(allEdges);
 //    printf("Matching:\n");
@@ -309,7 +347,7 @@ int main(int argc, char* argv[])
 //    Edges mst = getMST(allEdges, 100);
 //    printEdgesSimple(mst);
 
-    getMinCover(allEdges, 95);
+    //getMinCover(allEdges, 95);
 
     //printEdges(edges, numEdges);
 
@@ -327,8 +365,13 @@ int main(int argc, char* argv[])
     int numEdgesMST;
 
     for(int i=0;i<numEdges;++i){
+    	printf("Edge num: %d cost: %d\n", i, allEdges.edges[i].cost);
     	Edges mst = getMST(allEdges, allEdges.edges[i].cost);
+    	printf("MST:\n");
+    	printEdges(mst);
     	Edges minimumCover = getMinCover(allEdges, allEdges.edges[i].cost);
+    	printf("Min Cover:\n");
+    	printEdges(minimumCover);
     }
     
 
