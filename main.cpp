@@ -15,7 +15,7 @@
 
 
 Edge* generateRandomCompleteGraph(int numVertices){ //non-direction graph
-	assert(numVertices % 2 == 0);
+    //assert(numVertices % 2 == 0);
     Edge* edges = (Edge*) malloc (sizeof(Edge) * numVertices * (numVertices-1));
     int count = 0;
     for(int i=0;i<numVertices; ++i){
@@ -29,6 +29,23 @@ Edge* generateRandomCompleteGraph(int numVertices){ //non-direction graph
     //printf("added %d edges\n", count);
     return edges;
 }
+
+Edge* generateCompletePCost(int numVertices, int p_cost){ //non-direction graph
+    //assert(numVertices % 2 == 0);
+    Edge* edges = (Edge*) malloc (sizeof(Edge) * numVertices * (numVertices-1));
+    int count = 0;
+    for(int i=0;i<numVertices; ++i){
+        for(int j=i+1;j<numVertices;++j){
+            edges[count].v1 = i;
+            edges[count].v2 = j;
+            edges[count].cost = p_cost;
+            count++;
+        }
+    }
+    //printf("added %d edges\n", count);
+    return edges;
+}
+
 
 void printEdgesInMatching(Edge* edges, int numEdges, Matching* M){
     for(int i=0;i<numEdges;++i) 
@@ -106,7 +123,7 @@ Edges getMST(Edges edges, int cost){
 	for(int i=0;i<En.size();i++){
 		uE[i] = std::distance(Vn.begin(),Vn.find(En[i].v1));
 		vE[i] = std::distance(Vn.begin(),Vn.find(En[i].v2));
-		c[i] = En[i].cost;
+		c[i] = En[i].cost - cost;
 	}
 	MST mst(numVerticesMST, numEdgesMST, uE, vE, c);
 	mst.SolveKruskal();
@@ -182,7 +199,7 @@ Edges getMinCover(Edges edges, int cost){
 					aux_cost = Ep[j].cost;
 		}
 		//printf("vertex %d b_cost %d\n", Vp_vector[i], aux_cost);
-		b_cost[std::distance(V_used.begin(),V_used.find(currVertex))] = aux_cost; //change according to new index position
+		b_cost[std::distance(V_used.begin(),V_used.find(currVertex))] = aux_cost - cost; //change according to new index position, subtracting the cost
 	}
 	int new_cost[V_used.size() + (V_used.size() % 2)][V_used.size() + (V_used.size() % 2)];
 	//initialize all new_costs with zero, therefore completing the graph also
@@ -198,7 +215,7 @@ Edges getMinCover(Edges edges, int cost){
 		v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
 		v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
 		if (v1_aux > v2_aux) std::swap(v1_aux, v2_aux); //swap the numbers if necessary, since it is nondirectional
-		aux_cost = Ep[i].cost - b_cost[v1_aux] - b_cost[v2_aux];
+		aux_cost = (Ep[i].cost - cost) - b_cost[v1_aux] - b_cost[v2_aux];
 		if (aux_cost < 0)
 			new_cost[v1_aux][v2_aux] = aux_cost;
 	}
@@ -233,14 +250,14 @@ Edges getMinCover(Edges edges, int cost){
 			v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
 			v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
 			if (v1_aux > v2_aux) std::swap(v1_aux, v2_aux); //swap the numbers if necessary, since it is nondirectional
-			//if (new_cost[v1_aux][v2_aux] < 0){
+			if (new_cost[v1_aux][v2_aux] < 0){
 				if(M->IsInMatching(v1_aux, v2_aux)){
 					Vp_left.erase(Ep[i].v1);
 					Vp_left.erase(Ep[i].v2);
 					minCover.edges[edgesAdded++] = Ep[i];
 					//printf("{%d, %d, %d, %d}\n ", Ep[i].v1,Ep[i].v2, Ep[i].cost, new_cost[v1_aux][v2_aux]);
 				}
-			//}
+			}
     	}
     }
 	//printf("\n");
@@ -250,19 +267,18 @@ Edges getMinCover(Edges edges, int cost){
 		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
 	}
 	printf("\n");
-
 	//add minimum edges to complete the graph
 	//printf("Vertices left: ");
 	std::vector<int> Vp_left_vector( Vp_left.begin(), Vp_left.end() );
 //	for(int i=0;i<Vp_left_vector.size();i++){
 //		printf("%d ", Vp_left_vector[i]);
 //	}
-	//printf("\n");
+//	printf("\n");
 	while(Vp_left.size() > 0 ){
 		for(int i=0;i<Ep.size();++i){
 			//printf("v1 %d v2 %d begin %d cost %d b_cost %d\n", Ep[i].v1, Ep[i].v2, *Vp_left.begin(), Ep[i].cost, b_cost[std::distance(Vp_left.begin(),Vp_left.find(*Vp_left.begin()))]);
 			if (Ep[i].v1 == *Vp_left.begin() || Ep[i].v2 == *Vp_left.begin()){ //if edge incident to the first vertex
-				if (b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))] == Ep[i].cost){ //if it is the best edge
+				if (b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))] == Ep[i].cost-cost){ //if it is the best edge
 					//printf("found\n");
 					Vp_left.erase(*Vp_left.begin());
 					minCover.edges[edgesAdded++] = Ep[i];
@@ -276,10 +292,10 @@ Edges getMinCover(Edges edges, int cost){
 	//assert(edgesAdded == minCover.numEdges);
 	minCover.numEdges = edgesAdded;
 
-//	for(int i=0;i<edgesAdded;++i){
-//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-//	}
-//	printf("\n");
+	for(int i=0;i<edgesAdded;++i){
+		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+	}
+	printf("\n");
 
 	return minCover;
 }
@@ -320,16 +336,39 @@ int main(int argc, char* argv[])
 	Matching *M = new Matching(numVertices);
 
     Edge* edges = generateRandomCompleteGraph(numVertices);
+    //Edge* edges = generateCompletePCost(numVertices, 20);
 
     int numEdges = (numVertices)*(numVertices-1)/2; //somatorio
 
     Edges allEdges;
     allEdges.edges = edges;
     allEdges.numEdges = numEdges;
+/* testing a certain graph
+    for(int i=0;i<numEdges;++i){
+	int x1 = edges[i].v1;
+	int x2 = edges[i].v2;
+	if(x1 == 0 && x2 == 8)
+		edges[i].cost = 1;
+	if(x1 == 1 && x2 == 2)
+		edges[i].cost = 2;
+	if(x1 == 2 && x2 == 9)
+		edges[i].cost = 3;
+	if(x1 == 2 && x2 == 3)
+		edges[i].cost = 3;
+	if(x1 == 4 && x2 == 5)
+		edges[i].cost = 3;
+	if(x1 == 6 && x2 == 10)
+		edges[i].cost = 2;
+	if(x1 == 7 && x2 == 8)
+		edges[i].cost = 2;
+	if(x1 == 3 && x2 == 11)
+		edges[i].cost = 2;
+    }
+*/
 
     addEdges(allEdges, M);
 
-    M->SolveMinimumCostPerfectMatching();
+    //M->SolveMinimumCostPerfectMatching();
 
     /*
      * P-forest algorithm:
@@ -358,7 +397,7 @@ int main(int argc, char* argv[])
 //    Edges mst = getMST(allEdges, 100);
 //    printEdgesSimple(mst);
 
-    //getMinCover(allEdges, 95);
+    //getMinCover(allEdges, 0);
 
     //printEdges(edges, numEdges);
 
