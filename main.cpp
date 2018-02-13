@@ -330,7 +330,7 @@ int main(int argc, char* argv[])
     srand (time(NULL));
 
 	//Número de vértices, TEM que ser par.
-	int numVertices = 20;
+	int numVertices = 100;
 
 	//Instancia-se o objeto passando-se o número de vértices desejado.
 	Matching *M = new Matching(numVertices);
@@ -465,7 +465,8 @@ int main(int argc, char* argv[])
 		to remove.
 		*/
 		int removed = 0;
-		while (removed < (numTrees - (numVertices - solution.size()))){
+		int expected = (numTrees - (numVertices - solution.size()));
+		while (removed < expected){
 			for(i=0;i<solution.size();++i){
 				if (solution[i].cost == currCost){
 					solution.erase(solution.begin() + i);
