@@ -262,11 +262,11 @@ Edges getMinCover(Edges edges, int cost){
     }
 	//printf("\n");
 
-	printf("Edges by matching: \n");
-	for(int i=0;i<edgesAdded;++i){
-		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-	}
-	printf("\n");
+//	printf("Edges by matching: \n");
+//	for(int i=0;i<edgesAdded;++i){
+//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+//	}
+//	printf("\n");
 	//add minimum edges to complete the graph
 	//printf("Vertices left: ");
 	std::vector<int> Vp_left_vector( Vp_left.begin(), Vp_left.end() );
@@ -292,10 +292,10 @@ Edges getMinCover(Edges edges, int cost){
 	//assert(edgesAdded == minCover.numEdges);
 	minCover.numEdges = edgesAdded;
 
-	for(int i=0;i<edgesAdded;++i){
-		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-	}
-	printf("\n");
+//	for(int i=0;i<edgesAdded;++i){
+//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+//	}
+//	printf("\n");
 
 	return minCover;
 }
@@ -419,7 +419,7 @@ int main(int argc, char* argv[])
 
 
 	std::vector<Edge> solution;
-	int i;
+	int i = -1;
 
 	//do a first pass with the costs as they are
 	solution.clear();
@@ -430,16 +430,18 @@ int main(int argc, char* argv[])
 	for(int k=0;k<minimumCover.numEdges;++k)
 		solution.push_back(minimumCover.edges[k]);
 	printf("num trees: %d\n", numVertices - solution.size()); 
+	int currCost = 0;
 	if (!(numVertices - solution.size() <= numTrees)){ //if solution not found, continue
 		for(i=0;i<numEdges;++i){
 		   solution.clear();
 		   //printf("Edge num: %d cost: %d\n", i, allEdges.edges[i].cost);
-		   Edges mst = getMST(allEdges, allEdges.edges[i].cost);
+		   currCost = allEdges.edges[i].cost;
+		   Edges mst = getMST(allEdges, currCost);
 		   for(int k=0;k<mst.numEdges;++k)
 		   	solution.push_back(mst.edges[k]);
 		   //printf("MST:\n");
 		   //printEdges(mst);
-		   Edges minimumCover = getMinCover(allEdges, allEdges.edges[i].cost);
+		   Edges minimumCover = getMinCover(allEdges, currCost);
 		   for(int k=0;k<minimumCover.numEdges;++k)
 		   	solution.push_back(minimumCover.edges[k]);
 		   //printf("Min Cover:\n");
@@ -448,6 +450,7 @@ int main(int argc, char* argv[])
 		   //print solution
 		   printf("num trees: %d\n", numVertices - solution.size()); 
 		   if (numVertices - solution.size() <= numTrees){ //tree number is less than or equal to the amount expected
+			printf("stop\n");
 		   	break;
 		   }
 		}
@@ -455,14 +458,25 @@ int main(int argc, char* argv[])
 
 	if (numVertices - solution.size() < numTrees){ //I have less trees than expected
 		/*
-		This means that I should remove some edge. If I remove n edge without having a vertex uncovered,
+		This means that I should remove some edges. If I remove n edges without having a vertex uncovered,
 		such that n is the difference between the amount of trees I have and the expected amount,
 		I will have the amount of trees expected. These edges will have cost equal to the last cost calculated
 		(zero-cost edges in the paper). They should also be the edges of smallest cost that I should be able
 		to remove.
-		*/		
+		*/
+		int removed = 0;
+		while (removed < (numTrees - (numVertices - solution.size()))){
+			for(i=0;i<solution.size();++i){
+				if (solution[i].cost == currCost){
+					solution.erase(solution.begin() + i);
+					removed++;
+					break;
+				}	
+			}
+		}	
 	}
 
+	printf("num trees: %d\n", numVertices - solution.size()); 
 	for(int k=0;k<solution.size();++k)
 		printf("{%d, %d, %d} ", solution[k].v1, solution[k].v2, solution[k].cost);
 	
