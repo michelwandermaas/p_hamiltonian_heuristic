@@ -5,7 +5,7 @@ import random
 
 name_file = sys.argv[1]
 
-G = nx.Graph()
+G = nx.DiGraph()
 
 with open(name_file) as file:
 	line = file.read()

@@ -140,9 +140,6 @@ Edges getMST(Edges edges, int cost){
 }
 
 Edges getMinCover(Edges edges, int cost){
-	/* TODO: I need my paper so I can lookup how I will do this.
-	 * I know I will have to provide it with different costs and also add some zero-cost edges but I do not remember all the details.
-	 */
 	/*
 	The steps are:
 	Find the edges and vertices for the MinCover in edges. (Vp and Ep)
@@ -299,6 +296,87 @@ Edges getMinCover(Edges edges, int cost){
 
 	return minCover;
 }
+
+Edges doubleEdges(Edges edges){ //return all the edges doubled, as if it were directional
+	Edges ret;
+	ret.edges = (Edge*) malloc(sizeof(Edge)*edges.numEdges*2);
+	ret.numEdges = edges.numEdges*2;
+	
+	for(int i=0;i<edges.numEdges;++i){
+		ret.edges[2*i] = edges.edges[i];	
+		ret.edges[(2*i)+1].v1 = edges.edges[i].v2;	
+		ret.edges[(2*i)+1].v2 = edges.edges[i].v1;	
+		ret.edges[(2*i)+1].cost = edges.edges[i].cost;	
+	}
+	return ret;
+}
+
+Edges eulerianCircuit(Edges edges){
+	std::set<int> unvisitedVertices;	
+	std::vector<Edge> unvisitedEdges;
+	for(int i=0;i<edges.numEdges;i++){
+		unvisitedEdges.push_back(edges.edges[i]);	
+		unvisitedVertices.insert(edges.edges[i].v1);
+		unvisitedVertices.insert(edges.edges[i].v2);
+	}
+	int initialVertex = *unvisitedVertices.begin();
+	int currVertex = initialVertex;
+	unvisitedVertices.erase(currVertex);
+	std::vector<int> path;
+	bool found;
+	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
+	while (unvisitedVertices.size() > 0){	
+		//printf("%d\n", currVertex);
+		//printf("unvisited: ");
+		//std::set<int>::iterator x;
+		//for(x=unvisitedVertices.begin();x!=unvisitedVertices.end();x++)
+		//	printf("%d ", *x);
+		//printf("\n");
+		path.push_back(currVertex);
+		found = false;
+		for(int i=0;i<unvisitedEdges.size();i++){
+			//printf("%d %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2);  
+			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+				currVertex = unvisitedEdges[i].v2;
+				//printf("found unvisited %d\n", currVertex);
+				edgesUsed->push_back(unvisitedEdges[i]);
+				unvisitedEdges.erase(unvisitedEdges.begin()+i);
+				unvisitedVertices.erase(currVertex);
+				found = true;
+				break;
+			}
+		}
+		if (!found){ //if no unvisited edge is available, go to some already visited
+			for(int i=0;i<unvisitedEdges.size();i++){
+				//printf("%d %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2);  
+				if (unvisitedEdges[i].v1 == currVertex){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					currVertex = unvisitedEdges[i].v2;
+					//printf("found visited %d\n", currVertex);
+					edgesUsed->push_back(unvisitedEdges[i]);
+					unvisitedEdges.erase(unvisitedEdges.begin()+i);
+					//unvisitedVertices.erase(currVertex);
+					break;
+				}
+			}
+		}
+		//break;
+	}
+	path.push_back(currVertex);
+
+//	for(int k=0;k<edgesUsed->size();++k)
+//		printf("{%d, %d, %d} ", (*(edgesUsed->begin()+k)).v1, (*(edgesUsed->begin()+k)).v2, (*(edgesUsed->begin()+k)).cost);
+//	printf("\n");
+
+
+//	for(int i=0;i<path.size();i++)
+//		printf("%d ", path[i]);
+//	printf("\n");
+	Edges circuit;
+	circuit.edges = &edgesUsed->front();
+	circuit.numEdges = edgesUsed->size();
+	return circuit;
+}
+
 
 void printEdges(Edge* edges, int numEdges){
 	for(int i=0;i<numEdges;++i)
@@ -470,7 +548,7 @@ int main(int argc, char* argv[])
 		   //printf("MST size %d Min Cover size %d solution size %d\n", mst.numEdges, minimumCover.numEdges, solution.size());
 		   //print solution
 		   currTrees = numVertices - solution.size();
-		   zeroCostEdges = 0; //TODO: calculate it
+		   zeroCostEdges = 0;
 		   int numEdgesIncident[numVertices];
 		   for(i=0;i<numVertices;++i){
 			numEdgesIncident[i] = 0;
@@ -545,6 +623,12 @@ int main(int argc, char* argv[])
 	
 	printf("\n");
 
+	Edges toDouble;
+	toDouble.edges = (Edge*)&solution.front();
+	toDouble.numEdges = solution.size();
+
+	//printEdges(eulerianCircuit(doubleEdges(toDouble)));	TODO: I need to do this for every tree in the graph
+	
 	delete M;
 
 	return 0;
