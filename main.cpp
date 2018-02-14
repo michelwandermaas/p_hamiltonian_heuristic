@@ -330,7 +330,7 @@ int main(int argc, char* argv[])
     srand (time(NULL));
 
 	//Número de vértices, TEM que ser par.
-	int numVertices = 100;
+	int numVertices = 50;
 
 	//Instancia-se o objeto passando-se o número de vértices desejado.
 	Matching *M = new Matching(numVertices);
@@ -340,9 +340,16 @@ int main(int argc, char* argv[])
 
     int numEdges = (numVertices)*(numVertices-1)/2; //somatorio
 
+    int costsSum = 0;
+
+    for(int i=0;i<numEdges;++i){
+	costsSum += edges[i].cost;	
+    }
+
     Edges allEdges;
     allEdges.edges = edges;
     allEdges.numEdges = numEdges;
+
 /* testing a certain graph
     for(int i=0;i<numEdges;++i){
 	int x1 = edges[i].v1;
@@ -421,21 +428,35 @@ int main(int argc, char* argv[])
 	std::vector<Edge> solution;
 	int i = -1;
 
+	int minLimit = -2*costsSum;
+	int maxLimit = 0;
+
+	for(int i=0;i<numEdges;++i){
+		if (edges[i].cost > maxLimit)
+			maxLimit = edges[i].cost;
+	}
+
+	printf("min %d max %d", minLimit, maxLimit);
+
+
 	//do a first pass with the costs as they are
 	solution.clear();
-	Edges mst = getMST(allEdges, 0);
-	for(int k=0;k<mst.numEdges;++k)
-		solution.push_back(mst.edges[k]);
-	Edges minimumCover = getMinCover(allEdges, 0);
-	for(int k=0;k<minimumCover.numEdges;++k)
-		solution.push_back(minimumCover.edges[k]);
-	printf("num trees: %d\n", numVertices - solution.size()); 
-	int currCost = 0;
-	if (!(numVertices - solution.size() <= numTrees)){ //if solution not found, continue
-		for(i=0;i<numEdges;++i){
+//	Edges mst = getMST(allEdges, 0);
+//	for(int k=0;k<mst.numEdges;++k)
+//		solution.push_back(mst.edges[k]);
+//	Edges minimumCover = getMinCover(allEdges, 0);
+//	for(int k=0;k<minimumCover.numEdges;++k)
+//		solution.push_back(minimumCover.edges[k]);
+//	printf("num trees: %d\n", numVertices - solution.size()); 
+	int currCost = (minLimit+maxLimit)/2;
+	int currTrees, zeroCostEdges;
+	while(true){
+	//if (!(numVertices - solution.size() <= numTrees)){ //if solution not found, continue
+		//for(i=0;i<numEdges;++i){
 		   solution.clear();
-		   //printf("Edge num: %d cost: %d\n", i, allEdges.edges[i].cost);
-		   currCost = allEdges.edges[i].cost;
+		   printf("min %d max %d\n", minLimit, maxLimit);
+		   printf("lambda: %d\n", currCost);
+		   //currCost = allEdges.edges[i].cost;
 		   Edges mst = getMST(allEdges, currCost);
 		   for(int k=0;k<mst.numEdges;++k)
 		   	solution.push_back(mst.edges[k]);
@@ -448,15 +469,46 @@ int main(int argc, char* argv[])
 		   //printEdges(minimumCover);
 		   //printf("MST size %d Min Cover size %d solution size %d\n", mst.numEdges, minimumCover.numEdges, solution.size());
 		   //print solution
-		   printf("num trees: %d\n", numVertices - solution.size()); 
-		   if (numVertices - solution.size() <= numTrees){ //tree number is less than or equal to the amount expected
-			printf("stop\n");
-		   	break;
+		   currTrees = numVertices - solution.size();
+		   zeroCostEdges = 0; //TODO: calculate it
+		   int numEdgesIncident[numVertices];
+		   for(i=0;i<numVertices;++i){
+			numEdgesIncident[i] = 0;
 		   }
-		}
+
+	       	   for(i=0;i<solution.size();++i){
+			numEdgesIncident[solution[i].v1]++;
+			numEdgesIncident[solution[i].v2]++;
+		   }
+	       	   for(i=0;i<solution.size();++i){
+				if (solution[i].cost == currCost && numEdgesIncident[solution[i].v1] > 1 && numEdgesIncident[solution[i].v2] > 1){
+					numEdgesIncident[solution[i].v1]--;
+					numEdgesIncident[solution[i].v2]--;
+					zeroCostEdges++;
+				}	
+		   }
+
+		   printf("num trees: %d-%d\n", currTrees, currTrees+zeroCostEdges); 
+		   if (numTrees >= currTrees && numTrees <= currTrees+zeroCostEdges){
+			printf("found\n");
+			break; //found solution
+		   }else if (currTrees+zeroCostEdges > numTrees){ //I have less trees than expected
+			printf("more trees\n");
+			minLimit = currCost;
+			currCost += (maxLimit - currCost)/2;
+		   }else{ //I have more trees than expected
+			printf("less trees\n");
+			maxLimit = currCost;
+			currCost -= (currCost - minLimit)/2;
+		   }
+		   //if (numVertices - solution.size() <= numTrees){ //tree number is less than or equal to the amount expected
+		   //     printf("stop\n");
+		   //	break;
+		   //}
+		//}
 	}
 
-	if (numVertices - solution.size() < numTrees){ //I have less trees than expected
+	if (currTrees < numTrees){ //I have less trees than expected
 		/*
 		This means that I should remove some edges. If I remove n edges without having a vertex uncovered,
 		such that n is the difference between the amount of trees I have and the expected amount,
@@ -465,12 +517,22 @@ int main(int argc, char* argv[])
 		to remove.
 		*/
 		int removed = 0;
-		int expected = (numTrees - (numVertices - solution.size()));
+		int expected = (numTrees - currTrees);
+		int numEdgesIncident[numVertices];
+	       	for(i=0;i<numVertices;++i){
+			numEdgesIncident[i] = 0;
+		}
+	       	for(i=0;i<solution.size();++i){
+			numEdgesIncident[solution[i].v1]++;
+			numEdgesIncident[solution[i].v2]++;
+		}
 		while (removed < expected){
 			for(i=0;i<solution.size();++i){
-				if (solution[i].cost == currCost){
-					solution.erase(solution.begin() + i);
+				if (solution[i].cost == currCost && numEdgesIncident[solution[i].v1] > 1 && numEdgesIncident[solution[i].v2] > 1){
+					numEdgesIncident[solution[i].v1]--;
+					numEdgesIncident[solution[i].v2]--;
 					removed++;
+					solution.erase(solution.begin()+i);
 					break;
 				}	
 			}
