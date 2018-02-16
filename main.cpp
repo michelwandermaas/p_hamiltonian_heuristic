@@ -311,7 +311,26 @@ Edges doubleEdges(Edges edges){ //return all the edges doubled, as if it were di
 	return ret;
 }
 
-Edges eulerianCircuit(Edges edges){
+std::vector<int>* removeEqual(std::vector<int>& vector){
+	std::vector<int>* returnVector = new std::vector<int>();
+	bool found;
+	for(int i=0;i<vector.size();++i){
+		found = false;
+		for(int j=0;j<returnVector->size();++j){
+			if (*(returnVector->begin()+j) == vector[i]){
+				found = true;
+				break;
+			}
+		}
+		if (!found){
+			returnVector->push_back(vector[i]);
+		}
+	}
+	return returnVector;
+}
+
+
+Edges eulerianCircuit(Edges edges, Edges allEdges){
 	std::set<int> unvisitedVertices;	
 	std::vector<Edge> unvisitedEdges;
 	for(int i=0;i<edges.numEdges;i++){
@@ -322,9 +341,12 @@ Edges eulerianCircuit(Edges edges){
 	int initialVertex = *unvisitedVertices.begin();
 	int currVertex = initialVertex;
 	unvisitedVertices.erase(currVertex);
-	std::vector<int> path;
+	std::vector<int>* path;
+	path = new std::vector<int>;
 	bool found;
 	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
+	std::vector<std::vector<int>*> allPaths;
+	allPaths.push_back(path);
 	while (unvisitedVertices.size() > 0){	
 		//printf("%d\n", currVertex);
 		//printf("unvisited: ");
@@ -332,8 +354,8 @@ Edges eulerianCircuit(Edges edges){
 		//for(x=unvisitedVertices.begin();x!=unvisitedVertices.end();x++)
 		//	printf("%d ", *x);
 		//printf("\n");
-		path.push_back(currVertex);
 		found = false;
+		path->push_back(currVertex);
 		for(int i=0;i<unvisitedEdges.size();i++){
 			//printf("%d %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2);  
 			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
@@ -355,13 +377,45 @@ Edges eulerianCircuit(Edges edges){
 					edgesUsed->push_back(unvisitedEdges[i]);
 					unvisitedEdges.erase(unvisitedEdges.begin()+i);
 					//unvisitedVertices.erase(currVertex);
+					found = true;
 					break;
 				}
 			}
 		}
+		if (!found){ //that means that that cycle is done, move to next one
+			printf("new path\n");
+			path->push_back(currVertex);
+			std::vector<int>* aux = removeEqual(*path);
+			aux->push_back(initialVertex);
+			allPaths.push_back(aux);
+			path = new std::vector<int>;
+			initialVertex = *unvisitedVertices.begin();
+			currVertex = initialVertex;
+			unvisitedVertices.erase(currVertex);
+		}
 		//break;
 	}
-	path.push_back(currVertex);
+	path->push_back(currVertex);
+	std::vector<int>* aux = removeEqual(*path);
+	aux->push_back(initialVertex);
+	allPaths.push_back(aux);
+
+	//shortcut
+	std::vector<Edge>* edgesInPath = new std::vector<Edge>();
+	std::vector<int>* shortcutPath;	
+	//shortcutPath->push_back(initialVertex);
+	for(int k=0;k<allPaths.size();++k){
+		shortcutPath = allPaths[k];	
+		for(int i=0;i<shortcutPath->size()-1;++i){
+			//printf("%d %d\n", *(shortcutPath->begin()+i), *(shortcutPath->begin()+i+1) ); 
+			for(int j=0;j<allEdges.numEdges;++j){
+				if (allEdges.edges[j].v1 == *(shortcutPath->begin()+i) && allEdges.edges[j].v2 == *(shortcutPath->begin()+i+1)){
+					edgesInPath->push_back(allEdges.edges[j]);
+					break;
+				}
+			}
+		}
+	}
 
 //	for(int k=0;k<edgesUsed->size();++k)
 //		printf("{%d, %d, %d} ", (*(edgesUsed->begin()+k)).v1, (*(edgesUsed->begin()+k)).v2, (*(edgesUsed->begin()+k)).cost);
@@ -372,8 +426,8 @@ Edges eulerianCircuit(Edges edges){
 //		printf("%d ", path[i]);
 //	printf("\n");
 	Edges circuit;
-	circuit.edges = &edgesUsed->front();
-	circuit.numEdges = edgesUsed->size();
+	circuit.edges = &edgesInPath->front();
+	circuit.numEdges = edgesInPath->size();
 	return circuit;
 }
 
@@ -592,7 +646,7 @@ int main(int argc, char* argv[])
 		such that n is the difference between the amount of trees I have and the expected amount,
 		I will have the amount of trees expected. These edges will have cost equal to the last cost calculated
 		(zero-cost edges in the paper). They should also be the edges of smallest cost that I should be able
-		to remove.
+		to remove.rne Stroustrup: Why I Created C++
 		*/
 		int removed = 0;
 		int expected = (numTrees - currTrees);
@@ -627,7 +681,7 @@ int main(int argc, char* argv[])
 	toDouble.edges = (Edge*)&solution.front();
 	toDouble.numEdges = solution.size();
 
-	//printEdges(eulerianCircuit(doubleEdges(toDouble)));	TODO: I need to do this for every tree in the graph
+	printEdges(eulerianCircuit(doubleEdges(toDouble), doubleEdges(allEdges)));//	TODO: I need to do this for every tree in the graph
 	
 	delete M;
 
