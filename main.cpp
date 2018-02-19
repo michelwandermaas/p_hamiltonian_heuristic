@@ -6,13 +6,17 @@
 #include <vector>
 #include <set>
 #include <cstdio>
+#include <limits.h>
 
 #include "MST.h"
 #include "Graph.h"
 
-#define MAX_COST 100
+//#define MAX_COST 100
+int MAX_COST = INT_MAX;
 #define MIN_COST 1
 
+
+int numVertices;
 
 Edge* generateRandomCompleteGraph(int numVertices){ //non-direction graph
     //assert(numVertices % 2 == 0);
@@ -197,15 +201,18 @@ Edges getMinCover(Edges edges, int cost){
 	int b_cost[V_used.size()]; //best costs associated to each vertex
 	int aux_cost, currVertex;
 	std::vector<int> Vp_vector( V_used.begin(), V_used.end() );
+	//Edge aux;
 	for(int i=0;i<V_used.size();i++){
 		aux_cost = MAX_COST;
 		currVertex = Vp_vector[i];
 		for(int j=0;j<Ep.size();j++){
 			if (Ep[j].v1 == currVertex || Ep[j].v2 == currVertex) //if one of the endpoints is the current vertex
-				if (Ep[j].cost < aux_cost) //if the cost is less than the best one so far
+				if (Ep[j].cost < aux_cost){ //if the cost is less than the best one so far
 					aux_cost = Ep[j].cost;
+					//aux = Ep[j];
+				}
 		}
-		//printf("vertex %d b_cost %d\n", Vp_vector[i], aux_cost);
+		//printf("vertex %d b_cost %d edge:%d,%d\n", Vp_vector[i], aux_cost-cost, aux.v1, aux.v2);
 		b_cost[std::distance(V_used.begin(),V_used.find(currVertex))] = aux_cost - cost; //change according to new index position, subtracting the cost
 	}
 	int new_cost[V_used.size() + (V_used.size() % 2)][V_used.size() + (V_used.size() % 2)];
@@ -282,9 +289,11 @@ Edges getMinCover(Edges edges, int cost){
 //	}
 //	printf("\n");
 	while(Vp_left.size() > 0 ){
+		//printf("vertex left: %d\n", *Vp_left.begin()); 	
 		for(int i=0;i<Ep.size();++i){
 			//printf("v1 %d v2 %d begin %d cost %d b_cost %d\n", Ep[i].v1, Ep[i].v2, *Vp_left.begin(), Ep[i].cost, b_cost[std::distance(Vp_left.begin(),Vp_left.find(*Vp_left.begin()))]);
 			if (Ep[i].v1 == *Vp_left.begin() || Ep[i].v2 == *Vp_left.begin()){ //if edge incident to the first vertex
+				//printf("v1 %d v2 %d begin %d cost %d b_cost %d\n", Ep[i].v1, Ep[i].v2, *Vp_left.begin(), Ep[i].cost-cost, b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))]);
 				if (b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))] == Ep[i].cost-cost){ //if it is the best edge
 					//printf("found\n");
 					Vp_left.erase(Ep[i].v1);
@@ -453,7 +462,7 @@ Edges readEdges(char* filename){
 	Edge* edges = (Edge*) malloc (sizeof(Edge) * graph.n * (graph.n-1));
 	Edges edgesReturn;
 	edgesReturn.edges = edges;
-	edgesReturn.numEdges = 	graph.n * (graph.n-1);
+	edgesReturn.numEdges = 	(graph.n/2) * (graph.n-1);
 	int numAdded = 0;
 	for(int i=0;i<graph.n;++i){
 		for(int j=i+1;j<graph.n;++j){
@@ -464,34 +473,59 @@ Edges readEdges(char* filename){
 			edgesReturn.edges[numAdded++] = edge;
 		}
 	}
+	//printf("%d %d\n", numAdded, edgesReturn.numEdges);
 	assert(numAdded == edgesReturn.numEdges);
+	numVertices = graph.n;
 	return edgesReturn;
 }
 
 int main(int argc, char* argv[])
 {
-    srand (time(NULL));
 
-	//Número de vértices, TEM que ser par.
-	int numVertices = 10;
+	int minArg = 2, maxArg = 2;
 
-	//Instancia-se o objeto passando-se o número de vértices desejado.
-	Matching *M = new Matching(numVertices);
+	if(argc < minArg || argc > maxArg){
+		printf("Use --help (or -h) to see possible arguments.\n");
+		return 0;
+	}
 
-    Edge* edges = generateRandomCompleteGraph(numVertices);
-    //Edge* edges = generateCompletePCost(numVertices, 20);
+	std::string filename;
 
-    int numEdges = (numVertices)*(numVertices-1)/2; //somatorio
+	for(int i=1;i<argc;i++){
+		std::string x,y;
+		x.assign(argv[i]);
+		if (!x.compare("--help") || !x.compare("-h")){
+			printf("Usage: ./program FILENAME");
+			return 0;
+		}else{
+			filename = x;	
+		}
+	}
 
-    int costsSum = 0;
+	srand (time(NULL));
 
-    for(int i=0;i<numEdges;++i){
-	costsSum += edges[i].cost;	
-    }
+	Edges allEdges = readEdges((char*)filename.c_str());
 
-    Edges allEdges;
-    allEdges.edges = edges;
-    allEdges.numEdges = numEdges;
+//	//Número de vértices, TEM que ser par.
+//	int numVertices = 10;
+//
+//	//Instancia-se o objeto passando-se o número de vértices desejado.
+//	Matching *M = new Matching(numVertices);
+//
+//    Edge* edges = generateRandomCompleteGraph(numVertices);
+//    //Edge* edges = generateCompletePCost(numVertices, 20);
+//
+//    int numEdges = (numVertices)*(numVertices-1)/2; //somatorio
+//
+	int costsSum = 0;
+
+	for(int i=0;i<allEdges.numEdges;++i){
+		costsSum += allEdges.edges[i].cost;	
+	}
+//
+//    Edges allEdges;
+//    allEdges.edges = edges;
+//    allEdges.numEdges = numEdges;
 
 /* testing a certain graph
     for(int i=0;i<numEdges;++i){
@@ -516,7 +550,7 @@ int main(int argc, char* argv[])
     }
 */
 
-    addEdges(allEdges, M);
+    //addEdges(allEdges, M);
 
     //M->SolveMinimumCostPerfectMatching();
 
@@ -538,7 +572,7 @@ int main(int argc, char* argv[])
      * 			return solution
      */
 
-    ordenarArestas(edges, numEdges);
+    //ordenarArestas(edges, numEdges);
 //    printf("All Edges:\n");
 //    printEdges(allEdges);
 //    printf("Matching:\n");
@@ -565,6 +599,11 @@ int main(int argc, char* argv[])
 	std::cout << "Digite o número de árvores procuradas: ";
 	std::cin >> numTrees;
 
+	if (numTrees < 0 || numTrees > numVertices/2){
+		std::cout << "Número inválido de árvores. Número deve estar entre 1-"<< numVertices/2 << std::endl;
+		return 0;
+	}
+
 	int numEdgesNeeded = numVertices - numTrees;
 
 
@@ -574,9 +613,9 @@ int main(int argc, char* argv[])
 	int minLimit = -2*costsSum;
 	int maxLimit = 0;
 
-	for(int i=0;i<numEdges;++i){
-		if (edges[i].cost > maxLimit)
-			maxLimit = edges[i].cost;
+	for(int i=0;i<allEdges.numEdges;++i){
+		if (allEdges.edges[i].cost > maxLimit)
+			maxLimit = allEdges.edges[i].cost;
 	}
 
 	printf("min %d max %d", minLimit, maxLimit);
@@ -700,7 +739,7 @@ int main(int argc, char* argv[])
 
 	printEdges(eulerianCircuit(doubleEdges(toDouble), doubleEdges(allEdges)));//	TODO: I need to do this for every tree in the graph
 	
-	delete M;
+	//delete M;
 
 	return 0;
 }
