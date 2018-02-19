@@ -482,7 +482,8 @@ Edges readEdges(char* filename){
 int main(int argc, char* argv[])
 {
 
-	int minArg = 2, maxArg = 2;
+	int minArg = 3, maxArg = 3;
+	int numTrees;
 
 	if(argc < minArg || argc > maxArg){
 		printf("Use --help (or -h) to see possible arguments.\n");
@@ -495,10 +496,12 @@ int main(int argc, char* argv[])
 		std::string x,y;
 		x.assign(argv[i]);
 		if (!x.compare("--help") || !x.compare("-h")){
-			printf("Usage: ./program FILENAME");
+			printf("Usage: ./program FILE_NAME NUM_TREES\n");
 			return 0;
 		}else{
-			filename = x;	
+			filename.assign(argv[1]);	
+			numTrees = strtol(argv[2], NULL, 10);	
+			break;
 		}
 	}
 
@@ -595,9 +598,8 @@ int main(int argc, char* argv[])
 
 
     
-	int numTrees;
-	std::cout << "Digite o número de árvores procuradas: ";
-	std::cin >> numTrees;
+	//std::cout << "Digite o número de árvores procuradas: ";
+	//std::cin >> numTrees;
 
 	if (numTrees < 0 || numTrees > numVertices/2){
 		std::cout << "Número inválido de árvores. Número deve estar entre 1-"<< numVertices/2 << std::endl;
