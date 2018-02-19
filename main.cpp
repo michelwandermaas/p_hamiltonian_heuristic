@@ -259,11 +259,11 @@ Edges getMinCover(Edges edges, int cost){
     }
 	//printf("\n");
 
-//	printf("Edges by matching: \n");
-//	for(int i=0;i<edgesAdded;++i){
-//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-//	}
-//	printf("\n");
+	printf("Edges by matching: \n");
+	for(int i=0;i<edgesAdded;++i){
+		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
+	}
+	printf("\n");
 	//add minimum edges to complete the graph
 	//printf("Vertices left: ");
 	std::vector<int> Vp_left_vector( Vp_left.begin(), Vp_left.end() );
@@ -277,7 +277,8 @@ Edges getMinCover(Edges edges, int cost){
 			if (Ep[i].v1 == *Vp_left.begin() || Ep[i].v2 == *Vp_left.begin()){ //if edge incident to the first vertex
 				if (b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))] == Ep[i].cost-cost){ //if it is the best edge
 					//printf("found\n");
-					Vp_left.erase(*Vp_left.begin());
+					Vp_left.erase(Ep[i].v1);
+					Vp_left.erase(Ep[i].v2);
 					minCover.edges[edgesAdded++] = Ep[i];
 					break;
 				}
@@ -462,7 +463,7 @@ int main(int argc, char* argv[])
     srand (time(NULL));
 
 	//Número de vértices, TEM que ser par.
-	int numVertices = 50;
+	int numVertices = 10;
 
 	//Instancia-se o objeto passando-se o número de vértices desejado.
 	Matching *M = new Matching(numVertices);
@@ -592,13 +593,19 @@ int main(int argc, char* argv[])
 		   Edges mst = getMST(allEdges, currCost);
 		   for(int k=0;k<mst.numEdges;++k)
 		   	solution.push_back(mst.edges[k]);
-		   //printf("MST:\n");
-		   //printEdges(mst);
+		   printf("MST:\n");
+		   printEdges(mst);
 		   Edges minimumCover = getMinCover(allEdges, currCost);
 		   for(int k=0;k<minimumCover.numEdges;++k)
 		   	solution.push_back(minimumCover.edges[k]);
-		   //printf("Min Cover:\n");
-		   //printEdges(minimumCover);
+		   printf("Min Cover:\n");
+		   printEdges(minimumCover);
+		
+		   Edges auxedges;
+		   auxedges.numEdges = solution.size();
+		   auxedges.edges =  &solution.front();
+	           printEdges(auxedges);
+
 		   //printf("MST size %d Min Cover size %d solution size %d\n", mst.numEdges, minimumCover.numEdges, solution.size());
 		   //print solution
 		   currTrees = numVertices - solution.size();
