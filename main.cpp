@@ -48,15 +48,25 @@ Edge* generateCompletePCost(int numVertices, int p_cost){ //non-direction graph
 
 
 void printEdgesInMatching(Edge* edges, int numEdges, Matching* M){
-    for(int i=0;i<numEdges;++i) 
-	    if(M->IsInMatching(edges[i].v1, edges[i].v2)) printf("{%d, %d} ", edges[i].v1,edges[i].v2);
+    	int costSum = 0;
+    	for(int i=0;i<numEdges;++i){
+		if(M->IsInMatching(edges[i].v1, edges[i].v2)){
+			printf("{%d, %d} ", edges[i].v1,edges[i].v2);
+			costSum += edges[i].cost;
+		}
+	}
 	printf("\n");
+	printf("total cost: %d\n", costSum);
 }
 
 void printEdges(Edges edges){
-	for(int i=0;i<edges.numEdges;++i)
+    	int costSum = 0;
+	for(int i=0;i<edges.numEdges;++i){
 		printf("{%d, %d, %d} ", edges.edges[i].v1,edges.edges[i].v2, edges.edges[i].cost);
+		costSum += edges.edges[i].cost;
+	}
 	printf("\n");
+	printf("total cost: %d\n", costSum);
 }
 
 void printEdgesSimple(Edges edges){
