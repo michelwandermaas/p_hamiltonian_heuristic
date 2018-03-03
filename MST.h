@@ -21,7 +21,7 @@ typedef struct Edge{
 
 typedef struct{
     Edge* edges;
-    int numEdges;
+    double numEdges;
 }Edges;
 
 class MST
