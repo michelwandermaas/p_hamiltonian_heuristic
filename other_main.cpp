@@ -564,6 +564,7 @@ int countCyclesMinVertices(Edges edges, int minVertices){
 		}
 		if (!found){ //that means that that cycle is done, move to next one
 			path->push_back(currVertex);
+            //printf("cycle size %d\n", path->size());
             if (path->size() >= minVertices * 2)
                 count += (path->size() / minVertices) - 1; 
 			std::vector<int>* aux = removeEqual(*path);
@@ -576,9 +577,14 @@ int countCyclesMinVertices(Edges edges, int minVertices){
 		}
 	}
     if (path->size() >= minVertices * 2)
-                count += (path->size() / minVertices) - 1; 
+        count += (path->size() / minVertices) - 1; 
 
     return count;
+}
+
+
+Edges countCyclesMinVertices(Edges edges, Edges allEdges, int minVertices, int numToBreak){
+    //similar to the one above and the euclidean circuit, but break as it goes
 }
 
 int main(int argc, char* argv[]){
@@ -666,16 +672,20 @@ int main(int argc, char* argv[]){
         return 0;
     }else if (numCycles2Factor < numTrees){
     /*
-    Case 2: q > p. It means that we need to reduce the number of cycles by adding edges.
-        We find a T with is the MST of G. We need to find (q-p) edges in T which we will double and then
-        add to F, such that each of these edges connects 2 cycles in F. We guarantee a 3-approximation this way.
+    Case 3: q < p. It means that we need to increase the number of cycles by removing edges.
+        As long as there are at least (p-q) cycles with 6 or more vertices, we can do this by removing two edges (a,b)
+        and (c,d) and then adding edges (a,c) and (b,d), for example. Therefore there's a limit to how many trees we
+        can guarantee in this case. We guarantee a 2-approximation this way.
     */
         std::cout << "p < q" << std::endl;
         int numCyclesToAdd = countCyclesMinVertices(factor2, 3);
+        printf("can add up to %d cycles\n", numCyclesToAdd);
         if (numCyclesToAdd < (numTrees - numCycles2Factor)){
             std::cout << "Não é possível encontrar solução para esse número de árvores." << std::endl;
             return 0;
         }
+        
+
     }else{
     /*
     Case 2: q > p. It means that we need to reduce the number of cycles by adding edges.
