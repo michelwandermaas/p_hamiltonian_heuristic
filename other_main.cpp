@@ -341,129 +341,6 @@ Edges getMinCover(Edges edges, double cost){
 
 	return getMinCoverCalculation(edges, cost, Vp, V_used, Ep);
 
-	/*
-
-	//printf("Get best costs");
-	double b_cost[V_used.size()]; //best costs associated to each vertex
-	double aux_cost;
-	int currVertex;
-	std::vector<int> Vp_vector( V_used.begin(), V_used.end() );
-	//Edge aux;
-	for(int i=0;i<V_used.size();i++){
-		aux_cost = MAX_COST;
-		currVertex = Vp_vector[i];
-		for(int j=0;j<Ep.size();j++){
-			if (Ep[j].v1 == currVertex || Ep[j].v2 == currVertex) //if one of the endpoints is the current vertex
-				if (Ep[j].cost < aux_cost){ //if the cost is less than the best one so far
-					aux_cost = Ep[j].cost;
-					//aux = Ep[j];
-				}
-		}
-		//printf("vertex %d b_cost %d edge:%d,%d\n", Vp_vector[i], aux_cost-cost, aux.v1, aux.v2);
-		b_cost[std::distance(V_used.begin(),V_used.find(currVertex))] = aux_cost - cost; //change according to new index position, subtracting the cost
-	}
-	double new_cost[V_used.size() + (V_used.size() % 2)][V_used.size() + (V_used.size() % 2)];
-	//initialize all new_costs with zero, therefore completing the graph also
-	for(int i=0;i<V_used.size() + (V_used.size() % 2);i++){
-		for(int j=i+1;j<V_used.size() + (V_used.size() % 2);j++){ //matching expects non-directional edges
-			new_cost[i][j] = 0;
-		}
-	}
-	//change the costs of the edges if the new cost is less than zero
-	int v1_aux, v2_aux;
-	for(int i=0;i<Ep.size();++i){
-		//if (Vp.find(Ep[i].v1) == Vp.end() || Vp.find(Ep[i].v2) == Vp.end()) continue; //if one of the vertices are not in Vp, do not change cost
-		v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
-		v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
-		if (v1_aux > v2_aux) std::swap(v1_aux, v2_aux); //swap the numbers if necessary, since it is nondirectional
-		aux_cost = (Ep[i].cost - cost) - b_cost[v1_aux] - b_cost[v2_aux];
-		if (aux_cost < 0)
-			new_cost[v1_aux][v2_aux] = aux_cost;
-	}
-
-//	printf("Vp:\n");
-//	for(int i=0;i<V_used.size();i++){
-//		if (Vp.count(Vp_vector[i]))
-//			printf("%d ", Vp_vector[i]);
-//	}
-//	printf("\n");
-
-	//printf("\nVp size: %d", Vp.size());
-	//assert(Vp.size() % 2 == 0); //make sure the number of vertices is even. it is treated by adding another vertex at the end
-	Matching *M = new Matching((V_used.size()) + ((V_used.size()) % 2)); //possibly add another vertex if not even and include the number of edges not in Vp
-	//add all edges and the new costs
-	for(int i=0;i<V_used.size() + (V_used.size() % 2);i++){
-		for(int j=i+1;j<V_used.size() + (V_used.size() % 2);j++){  //matching expects non-directional edges
-			//printf("Added {%d, %d, %d}\n ", i,j, new_cost[i][j]);
-			M->AddEdge(i, j, new_cost[i][j]); //add the edges that have both endpoints in Vp
-		}
-    	}
-
-	M->SolveMinimumCostPerfectMatching();
-
-	std::set<int> Vp_left(Vp);
-	minCover.edges = (Edge*) malloc(sizeof(Edge)*V_used.size()-1);
-
-	int edgesAdded = 0;
-	//printf("\nEdges in matching for min cover\n");
-    for(int i=0;i<Ep.size();++i){
-    	if(Vp.count(Ep[i].v1) && Vp.count(Ep[i].v2)){ //if both vertices are in Vp. otherwise, I do not care about this edge
-			v1_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v1)); //index change according to the new array
-			v2_aux = std::distance(V_used.begin(),V_used.find(Ep[i].v2));
-			if (v1_aux > v2_aux) std::swap(v1_aux, v2_aux); //swap the numbers if necessary, since it is nondirectional
-			if (new_cost[v1_aux][v2_aux] < 0){
-				if(M->IsInMatching(v1_aux, v2_aux)){
-					Vp_left.erase(Ep[i].v1);
-					Vp_left.erase(Ep[i].v2);
-					minCover.edges[edgesAdded++] = Ep[i];
-					//printf("{%d, %d, %d, %d}\n ", Ep[i].v1,Ep[i].v2, Ep[i].cost, new_cost[v1_aux][v2_aux]);
-				}
-			}
-    	}
-    }
-	//printf("\n");
-
-	printf("Edges by matching: \n");
-	for(int i=0;i<edgesAdded;++i){
-		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-	}
-	printf("\n");
-	//add minimum edges to complete the graph
-	//printf("Vertices left: ");
-	std::vector<int> Vp_left_vector( Vp_left.begin(), Vp_left.end() );
-//	for(int i=0;i<Vp_left_vector.size();i++){
-//		printf("%d ", Vp_left_vector[i]);
-//	}
-//	printf("\n");
-	while(Vp_left.size() > 0 ){
-		//printf("vertex left: %d\n", *Vp_left.begin()); 	
-		for(int i=0;i<Ep.size();++i){
-			//printf("v1 %d v2 %d begin %d cost %d b_cost %d\n", Ep[i].v1, Ep[i].v2, *Vp_left.begin(), Ep[i].cost, b_cost[std::distance(Vp_left.begin(),Vp_left.find(*Vp_left.begin()))]);
-			if (Ep[i].v1 == *Vp_left.begin() || Ep[i].v2 == *Vp_left.begin()){ //if edge incident to the first vertex
-				//printf("v1 %d v2 %d begin %d cost %d b_cost %d\n", Ep[i].v1, Ep[i].v2, *Vp_left.begin(), Ep[i].cost-cost, b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))]);
-				if (b_cost[std::distance(V_used.begin(),V_used.find(*Vp_left.begin()))] == Ep[i].cost-cost){ //if it is the best edge
-					//printf("found\n");
-					Vp_left.erase(Ep[i].v1);
-					Vp_left.erase(Ep[i].v2);
-					minCover.edges[edgesAdded++] = Ep[i];
-					break;
-				}
-			}
-		}
-		//break;
-	}
-	//printf("%d %d %d\n", edgesAdded, minCover.numEdges, Vp.size());
-	//assert(edgesAdded == minCover.numEdges);
-	minCover.numEdges = edgesAdded;
-
-//	for(int i=0;i<edgesAdded;++i){
-//		printf("{%d, %d, %d} ", minCover.edges[i].v1,minCover.edges[i].v2, minCover.edges[i].cost);
-//	}
-//	printf("\n");
-
-	return minCover;
-
-	*/
 }
 
 Edges doubleEdges(Edges edges){ //return all the edges doubled, as if it were directional
@@ -536,19 +413,11 @@ Edges eulerianCircuit(Edges edges, Edges allEdges){
 	std::vector<std::vector<int>*> allPaths;
 	allPaths.push_back(path);
 	while (unvisitedVertices.size() > 0){	
-		//printf("%d\n", currVertex);
-		//printf("unvisited: ");
-		//std::set<int>::iterator x;
-		//for(x=unvisitedVertices.begin();x!=unvisitedVertices.end();x++)
-		//	printf("%d ", *x);
-		//printf("\n");
 		found = false;
 		path->push_back(currVertex);
 		for(int i=0;i<unvisitedEdges.size();i++){
-			//printf("%d %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2);  
 			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
 				currVertex = unvisitedEdges[i].v2;
-				//printf("found unvisited %d\n", currVertex);
 				edgesUsed->push_back(unvisitedEdges[i]);
 				unvisitedEdges.erase(unvisitedEdges.begin()+i);
 				unvisitedVertices.erase(currVertex);
@@ -558,13 +427,10 @@ Edges eulerianCircuit(Edges edges, Edges allEdges){
 		}
 		if (!found){ //if no unvisited edge is available, go to some already visited
 			for(int i=0;i<unvisitedEdges.size();i++){
-				//printf("%d %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2);  
 				if (unvisitedEdges[i].v1 == currVertex){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
 					currVertex = unvisitedEdges[i].v2;
-					//printf("found visited %d\n", currVertex);
 					edgesUsed->push_back(unvisitedEdges[i]);
 					unvisitedEdges.erase(unvisitedEdges.begin()+i);
-					//unvisitedVertices.erase(currVertex);
 					found = true;
 					break;
 				}
@@ -581,7 +447,6 @@ Edges eulerianCircuit(Edges edges, Edges allEdges){
 			currVertex = initialVertex;
 			unvisitedVertices.erase(currVertex);
 		}
-		//break;
 	}
 	path->push_back(currVertex);
 	std::vector<int>* aux = removeEqual(*path);
@@ -591,11 +456,9 @@ Edges eulerianCircuit(Edges edges, Edges allEdges){
 	//shortcut
 	std::vector<Edge>* edgesInPath = new std::vector<Edge>();
 	std::vector<int>* shortcutPath;	
-	//shortcutPath->push_back(initialVertex);
 	for(int k=0;k<allPaths.size();++k){
 		shortcutPath = allPaths[k];	
 		for(int i=0;i<shortcutPath->size()-1;++i){
-			//printf("%d %d\n", *(shortcutPath->begin()+i), *(shortcutPath->begin()+i+1) ); 
 			for(int j=0;j<allEdges.numEdges;++j){
 				if (allEdges.edges[j].v1 == *(shortcutPath->begin()+i) && allEdges.edges[j].v2 == *(shortcutPath->begin()+i+1)){
 					edgesInPath->push_back(allEdges.edges[j]);
@@ -605,14 +468,6 @@ Edges eulerianCircuit(Edges edges, Edges allEdges){
 		}
 	}
 
-//	for(int k=0;k<edgesUsed->size();++k)
-//		printf("{%d, %d, %d} ", (*(edgesUsed->begin()+k)).v1, (*(edgesUsed->begin()+k)).v2, (*(edgesUsed->begin()+k)).cost);
-//	printf("\n");
-
-
-//	for(int i=0;i<path.size();i++)
-//		printf("%d ", path[i]);
-//	printf("\n");
 	edgesInPath = removeEqualEdge(*edgesInPath);
 	Edges circuit;
 	circuit.edges = &edgesInPath->front();
@@ -648,8 +503,20 @@ Edges readEdges(char* filename){
 	return edgesReturn;
 }
 
-int main(int argc, char* argv[])
-{
+Edges two_factor(Edges edges){
+
+}
+
+int countCycles(Edges edges){
+
+}
+
+int countCyclesMinVertices(Edges edges, int minVertices){
+//for every cycle with more than (minVertices*2), result += (floor(numCycles / minVertices) - 1)
+
+}
+
+int main(int argc, char* argv[]){
 
 	int minArg = 3, maxArg = 3;
 	int numTrees;
@@ -702,6 +569,12 @@ int main(int argc, char* argv[])
         As long as there are at least (p-q) cycles with 6 or more vertices, we can do this by removing two edges (a,b)
         and (c,d) and then adding edges (a,c) and (b,d), for example. Therefore there's a limit to how many trees we
         can guarantee in this case. We guarantee a 2-approximation this way.
+
+    2-factor algorithm:
+        1.For every edge (a,b) in graph, add two vertices ab1 and ab2, remove edge (a,b) and add edges (a,ab1),
+        edge (ab1,ab2) and edge (ab2,b), such that c(a,ab1)=c(ab2,b)=c(a,b)/2 and c(ab1,ab2)=0.
+        2.Solve Minimum Perfect Matching for the new Graph
+        3.If (a, ab1) or (ab2,b) in matching, then edge (a,b) is in the 2-factor.
     */
 
 	if (numTrees < 0 || numTrees > numVertices/2){
@@ -711,138 +584,30 @@ int main(int argc, char* argv[])
 
     //start the algorithm here
 
-    
-	int numEdgesNeeded = numVertices - numTrees;
+    Edges factor2 = two_factor(allEdges); 
+    int numCycles2Factor = countCycles(factor2);
 
-
-	std::vector<Edge> solution;
-	int i = -1;
-
-	double minLimit = -2*costsSum;
-	double maxLimit = 0;
-
-	for(int i=0;i<allEdges.numEdges;++i){
-		if (allEdges.edges[i].cost > maxLimit)
-			maxLimit = allEdges.edges[i].cost;
-	}
-
-	printf("min %d max %d", minLimit, maxLimit);
-
-
-	solution.clear();
-
-	double currCost = (minLimit+maxLimit)/2.0;
-	int currTrees, zeroCostEdges;
-	while(true){
-	//if (!(numVertices - solution.size() <= numTrees)){ //if solution not found, continue
-		//for(i=0;i<numEdges;++i){
-		   solution.clear();
-		   printf("min %lf max %lf\n", minLimit, maxLimit);
-		   printf("lambda: %lf\n", currCost);
-		   //currCost = allEdges.edges[i].cost;
-		   Edges mst = getMST(allEdges, currCost);
-		   for(int k=0;k<mst.numEdges;++k)
-		   	solution.push_back(mst.edges[k]);
-		   printf("MST:\n");
-		   printEdges(mst);
-		   Edges minimumCover = getMinCover(allEdges, currCost);
-		   for(int k=0;k<minimumCover.numEdges;++k)
-		   	solution.push_back(minimumCover.edges[k]);
-		   printf("Min Cover:\n");
-		   printEdges(minimumCover);
-		
-		   Edges auxedges;
-		   auxedges.numEdges = solution.size();
-		   auxedges.edges =  &solution.front();
-	           printEdges(auxedges);
-
-		   //printf("MST size %d Min Cover size %d solution size %d\n", mst.numEdges, minimumCover.numEdges, solution.size());
-		   //print solution
-		   currTrees = numVertices - solution.size();
-		   zeroCostEdges = 0;
-		   int numEdgesIncident[numVertices];
-		   for(i=0;i<numVertices;++i){
-			numEdgesIncident[i] = 0;
-		   }
-
-	       	   for(i=0;i<solution.size();++i){
-			numEdgesIncident[solution[i].v1]++;
-			numEdgesIncident[solution[i].v2]++;
-		   }
-	       	   for(i=0;i<solution.size();++i){
-				if (solution[i].cost == currCost && numEdgesIncident[solution[i].v1] > 1 && numEdgesIncident[solution[i].v2] > 1){
-					numEdgesIncident[solution[i].v1]--;
-					numEdgesIncident[solution[i].v2]--;
-					zeroCostEdges++;
-				}	
-		   }
-
-		   printf("num trees: %d-%d\n", currTrees, currTrees+zeroCostEdges); 
-		   if (numTrees >= currTrees && numTrees <= currTrees+zeroCostEdges){
-			printf("found\n");
-			break; //found solution
-		   }else if (currTrees+zeroCostEdges > numTrees){ //I have less trees than expected
-			printf("more trees\n");
-			minLimit = currCost;
-			currCost += (maxLimit - currCost)/2.0;
-		   }else{ //I have more trees than expected
-			printf("less trees\n");
-			maxLimit = currCost;
-			currCost -= (currCost - minLimit)/2.0;
-		   }
-		   printf("\n\n\n\n");
-		   //if (numVertices - solution.size() <= numTrees){ //tree number is less than or equal to the amount expected
-		   //     printf("stop\n");
-		   //	break;
-		   //}
-		//}
-	}
-
-	if (currTrees < numTrees){ //I have less trees than expected
-		/*
-		This means that I should remove some edges. If I remove n edges without having a vertex uncovered,
-		such that n is the difference between the amount of trees I have and the expected amount,
-		I will have the amount of trees expected. These edges will have cost equal to the last cost calculated
-		(zero-cost edges in the paper). They should also be the edges of smallest cost that I should be able
-		to remove.rne Stroustrup: Why I Created C++
-		*/
-		int removed = 0;
-		int expected = (numTrees - currTrees);
-		int numEdgesIncident[numVertices];
-	       	for(i=0;i<numVertices;++i){
-			numEdgesIncident[i] = 0;
-		}
-	       	for(i=0;i<solution.size();++i){
-			numEdgesIncident[solution[i].v1]++;
-			numEdgesIncident[solution[i].v2]++;
-		}
-		while (removed < expected){
-			for(i=0;i<solution.size();++i){
-				if (solution[i].cost == currCost && numEdgesIncident[solution[i].v1] > 1 && numEdgesIncident[solution[i].v2] > 1){
-					numEdgesIncident[solution[i].v1]--;
-					numEdgesIncident[solution[i].v2]--;
-					removed++;
-					solution.erase(solution.begin()+i);
-					break;
-				}	
-			}
-		}	
-	}
-
-	printf("num trees: %d\n", numVertices - solution.size()); 
-	for(int k=0;k<solution.size();++k)
-		printf("{%d, %d, %d} ", solution[k].v1, solution[k].v2, solution[k].cost);
-	
-	printf("\n");
-
-	Edges toDouble;
-	toDouble.edges = (Edge*)&solution.front();
-	toDouble.numEdges = solution.size();
-
-	printEdges(eulerianCircuit(doubleEdges(toDouble), doubleEdges(allEdges)));
-	
-	//delete M;
-
-
+    if (numCycles2Factor == numTrees){
+        std::cout << "Solução ótima encontrada." << std::endl;
+        printEdges(factor2);
+        return 0;
+    }else if (numCycles2Factor < numTrees){
+    /*
+    Case 2: q > p. It means that we need to reduce the number of cycles by adding edges.
+        We find a T with is the MST of G. We need to find (q-p) edges in T which we will double and then
+        add to F, such that each of these edges connects 2 cycles in F. We guarantee a 3-approximation this way.
+    */
+        int numCyclesToAdd = countCyclesMinVertices(factor2, 3);
+        if (numCyclesToAdd < (numTrees - numCycles2Factor)){
+            std::cout << "Não é possível encontrar solução para esse número de árvores." << std::endl;
+            return 0;
+        }
+    }else{
+    /*
+    Case 2: q > p. It means that we need to reduce the number of cycles by adding edges.
+        We find a T with is the MST of G. We need to find (q-p) edges in T which we will double and then
+        add to F, such that each of these edges connects 2 cycles in F. We guarantee a 3-approximation this way.
+    */
+    }
 	return 0;
 }
