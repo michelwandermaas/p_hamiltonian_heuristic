@@ -7,7 +7,7 @@
 typedef struct Edge{
     int v1;
     int v2;
-    int cost;
+    double cost;
     friend bool operator==(const Edge& e1, const Edge& e2){
 	return e1.v1 == e2.v1 && e1.v2 == e2.v2;
     }
@@ -21,7 +21,7 @@ typedef struct Edge{
 
 typedef struct{
     Edge* edges;
-    double numEdges;
+    int numEdges;
 }Edges;
 
 class MST

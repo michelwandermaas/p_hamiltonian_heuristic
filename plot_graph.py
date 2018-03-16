@@ -36,6 +36,8 @@ for i in range(len(edges)):
 		w = round(random.random(),2)
 	G.add_edge(int(edges[i][0]), int(edges[i][1]), weight=w)
 
+print("drawing")
+
 #pos=nx.get_node_attributes(G,'pos')
 nx.draw(G,with_labels=True)
 #labels = nx.get_edge_attributes(G,'weight')
