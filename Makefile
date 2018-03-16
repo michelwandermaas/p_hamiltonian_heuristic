@@ -8,21 +8,28 @@ CXX = g++ #must support C++11
 # sources in alphabetical order
 SOURCES = BinaryHeap.cpp
 SOURCES += Graph.cpp
-SOURCES += main.cpp
 SOURCES += Matching.cpp
 SOURCES += MST.cpp
-# SOURCES += MST_main.cpp
-
-OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS = -std=gnu++11 -Wall
-EXEC = hamiltonian
 debugfile = hamiltonian_debug
 
 debug: CXXFLAGS += -O0 -g3 -pg
-all: CXXFLAGS += -O3
 
-all: $(OBJECTS)
+other: CXXFLAGS += -O3
+other: EXEC = hamiltonian_other
+other: SOURCES += other_main.cpp
+    
+linear: CXXFLAGS += -O3
+linear: EXEC = hamiltonian_linear
+linear: SOURCES += linear_main.cpp
+
+OBJECTS = $(SOURCES:.cpp=.o)
+
+other: $(OBJECTS) other_main.o
+	${CXX} $(CXXFLAGS) $(OBJECTS) -o $(EXEC) $(LNFLAGS)
+
+linear: $(OBJECTS) linear_main.o
 	${CXX} $(CXXFLAGS) $(OBJECTS) -o $(EXEC) $(LNFLAGS)
 
 debug: $(OBJECTS)
@@ -30,5 +37,5 @@ debug: $(OBJECTS)
 
 clean:
 	$(RM) *.o *~
-	$(RM) $(EXEC)
+	#$(RM) $(EXEC)
 	$(RM) $(debugfile)
