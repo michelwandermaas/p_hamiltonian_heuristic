@@ -336,6 +336,14 @@ Edges two_factor(Edges edges){
 		vertices.insert(edges.edges[i].v2);
 	}
 
+    std::vector<int> verticesVector(vertices.begin(), vertices.end()); //vector with original vertices
+
+    int numVerticesOriginal = vertices.size();
+
+	for(int i=0;i<numVerticesOriginal;i++){ //add dummy original vertices
+        vertices.insert(i+numVerticesOriginal);
+    }
+
     std::set<int> usedVertices(vertices);
     std::vector<Edge> newVertexToEdge; //newVertex to the equivalent edge
     std::set<int> addedVertices;
@@ -344,15 +352,43 @@ Edges two_factor(Edges edges){
 
     std::vector<Edge> allEdges;
     for(int i=0;i<edges.numEdges;i++){
+
+        //add first edge
+
         Edge aux;
         aux.v1 = edges.edges[i].v1;
         aux.v2 = numVertex;
-        aux.cost = edges.edges[i].cost / 2.0;
+        aux.cost = edges.edges[i].cost;
+
+        allEdges.push_back(aux);
+
+        //add edge to dummy
+        Edge aux3;
+        aux3.v1 = edges.edges[i].v1+numVerticesOriginal;
+        aux3.v2 = numVertex;
+        aux3.cost = edges.edges[i].cost;
+
+        allEdges.push_back(aux3);
+
+
+        //add second edge
 
         Edge aux1;
         aux1.v1 = edges.edges[i].v2;
         aux1.v2 = numVertex+1;
-        aux1.cost = edges.edges[i].cost / 2.0;
+        aux1.cost = edges.edges[i].cost;
+
+        allEdges.push_back(aux1);
+
+        //add edge to dummy
+        Edge aux4;
+        aux4.v1 = edges.edges[i].v2+numVerticesOriginal;
+        aux4.v2 = numVertex+1;
+        aux4.cost = edges.edges[i].cost;
+
+        allEdges.push_back(aux4);
+
+
 
 	    newVertexToEdge.push_back(edges.edges[i]);	
 	    newVertexToEdge.push_back(edges.edges[i]);	
@@ -371,8 +407,6 @@ Edges two_factor(Edges edges){
         usedVertices.insert(numVertex++); 
 
         //add edges to allEdges
-        allEdges.push_back(aux);
-        allEdges.push_back(aux1);
         allEdges.push_back(aux2);
 	}
 
@@ -387,37 +421,43 @@ Edges two_factor(Edges edges){
     }
     
     Matching *M = new Matching((usedVertices.size()) + ((usedVertices.size()) % 2));
+    //printf("size V %d\n", (usedVertices.size()) + ((usedVertices.size()) % 2));
+    //printf("size %d\n", allEdges.size());
 	for(int i=0;i<allEdges.size();i++){
+            //printf("%d\n", i);
 		    //printf("{%d, %d, %d}\n", allEdges[i].v1,allEdges[i].v2, allEdges[i].cost);
+            //std::cout << std::flush;
 			M->AddEdge(allEdges[i].v1, allEdges[i].v2, allEdges[i].cost); //add the edges that have both endpoints in Vp
     }
-
+    //assert(0==1); 
+    //std::cout << "solving" << std::endl << std::flush;
 	M->SolveMinimumCostPerfectMatching();
+    //std::cout << "solved" << std::endl << std::flush;
 
-    std::vector<Edge> twoFactor;
+    std::vector<Edge>* twoFactor = new std::vector<Edge>();
 
-    std::vector<int> verticesVector(vertices.begin(), vertices.end());
     std::vector<int> addedVector(addedVertices.begin(), addedVertices.end());
 
 	for(int i=0;i<verticesVector.size();i++){
 	    for(int j=0;j<addedVector.size();j++){
             //printf("%d %d\n",  verticesVector[i], addedVector[j]-edges.numEdges);
-		    if(M->IsInMatching(verticesVector[i], addedVector[j])){
-                Edge x = newVertexToEdge[addedVector[j]-vertices.size()];
+		    if(M->IsInMatching(verticesVector[i], addedVector[j]) || M->IsInMatching(verticesVector[i]+numVerticesOriginal, addedVector[j])){
+                //Edge x = newVertexToEdge[addedVector[j]-vertices.size()];
                 //printf("%d %d\n",  addedVector[j], addedVector[j]-vertices.size());
                 //printf("%d %d\n", verticesVector[i], addedVector[j]);
-		        printf("{%d, %d, %lf}\n", x.v1,x.v2, x.cost);
-                twoFactor.push_back(newVertexToEdge[addedVector[j]-vertices.size()]);
+		        //printf("{%d, %d, %lf}\n", x.v1,x.v2, x.cost);
+                twoFactor->push_back(newVertexToEdge[addedVector[j]-vertices.size()]);
             }
         }
     }
 
-    Edges circuit;
-	circuit.edges = &twoFactor.front();
-	circuit.numEdges = twoFactor.size();
+    Edges solution;
+	solution.edges = &twoFactor->front();
+	solution.numEdges = twoFactor->size();
 
-    printEdgesInMatching(circuit.edges, circuit.numEdges, M);
+    //printEdges(solution);
 
+    return solution;
 }
 
 int countCycles(Edges edges){
