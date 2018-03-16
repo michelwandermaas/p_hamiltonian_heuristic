@@ -263,7 +263,6 @@ Edges eulerianCircuit(Edges edges, Edges allEdges){
 			}
 		}
 		if (!found){ //that means that that cycle is done, move to next one
-			printf("new path\n");
 			path->push_back(currVertex);
 			std::vector<int>* aux = removeEqual(*path);
 			aux->push_back(initialVertex);
@@ -455,18 +454,131 @@ Edges two_factor(Edges edges){
 	solution.edges = &twoFactor->front();
 	solution.numEdges = twoFactor->size();
 
-    //printEdges(solution);
+    printEdges(solution);
 
     return solution;
 }
 
 int countCycles(Edges edges){
+    int count = 1;
 
+    std::set<int> unvisitedVertices;	
+	std::vector<Edge> unvisitedEdges;
+	for(int i=0;i<edges.numEdges;i++){
+		unvisitedEdges.push_back(edges.edges[i]);	
+		unvisitedVertices.insert(edges.edges[i].v1);
+		unvisitedVertices.insert(edges.edges[i].v2);
+	}
+	int initialVertex = *unvisitedVertices.begin();
+	int currVertex = initialVertex;
+	unvisitedVertices.erase(currVertex);
+	std::vector<int>* path;
+	path = new std::vector<int>;
+	bool found;
+	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
+	std::vector<std::vector<int>*> allPaths;
+	allPaths.push_back(path);
+	while (unvisitedVertices.size() > 0){	
+		found = false;
+		path->push_back(currVertex);
+		for(int i=0;i<unvisitedEdges.size();i++){
+			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+				currVertex = unvisitedEdges[i].v2;
+				edgesUsed->push_back(unvisitedEdges[i]);
+				unvisitedEdges.erase(unvisitedEdges.begin()+i);
+				unvisitedVertices.erase(currVertex);
+				found = true;
+				break;
+			}
+		}
+		if (!found){ //if no unvisited edge is available, go to some already visited
+			for(int i=0;i<unvisitedEdges.size();i++){
+				if (unvisitedEdges[i].v1 == currVertex){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					currVertex = unvisitedEdges[i].v2;
+					edgesUsed->push_back(unvisitedEdges[i]);
+					unvisitedEdges.erase(unvisitedEdges.begin()+i);
+					found = true;
+					break;
+				}
+			}
+		}
+		if (!found){ //that means that that cycle is done, move to next one
+            count++;
+			path->push_back(currVertex);
+			std::vector<int>* aux = removeEqual(*path);
+			aux->push_back(initialVertex);
+			allPaths.push_back(aux);
+			path = new std::vector<int>;
+			initialVertex = *unvisitedVertices.begin();
+			currVertex = initialVertex;
+			unvisitedVertices.erase(currVertex);
+		}
+	}
+
+    return count;
 }
 
 int countCyclesMinVertices(Edges edges, int minVertices){
-//for every cycle with more than (minVertices*2), result += (floor(numCycles / minVertices) - 1)
+    //for every cycle with more than (minVertices*2), result += (floor(numCycles / minVertices) - 1)
+    int count = 0;
 
+    std::set<int> unvisitedVertices;	
+	std::vector<Edge> unvisitedEdges;
+	for(int i=0;i<edges.numEdges;i++){
+		unvisitedEdges.push_back(edges.edges[i]);	
+		unvisitedVertices.insert(edges.edges[i].v1);
+		unvisitedVertices.insert(edges.edges[i].v2);
+	}
+	int initialVertex = *unvisitedVertices.begin();
+	int currVertex = initialVertex;
+	unvisitedVertices.erase(currVertex);
+	std::vector<int>* path;
+	path = new std::vector<int>;
+	bool found;
+	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
+	std::vector<std::vector<int>*> allPaths;
+	allPaths.push_back(path);
+	while (unvisitedVertices.size() > 0){	
+		found = false;
+		path->push_back(currVertex);
+		for(int i=0;i<unvisitedEdges.size();i++){
+			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+				currVertex = unvisitedEdges[i].v2;
+				edgesUsed->push_back(unvisitedEdges[i]);
+				unvisitedEdges.erase(unvisitedEdges.begin()+i);
+				unvisitedVertices.erase(currVertex);
+				found = true;
+				break;
+			}
+		}
+		if (!found){ //if no unvisited edge is available, go to some already visited
+			for(int i=0;i<unvisitedEdges.size();i++){
+				if (unvisitedEdges[i].v1 == currVertex){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					currVertex = unvisitedEdges[i].v2;
+					edgesUsed->push_back(unvisitedEdges[i]);
+					unvisitedEdges.erase(unvisitedEdges.begin()+i);
+					found = true;
+					break;
+				}
+			}
+		}
+		if (!found){ //that means that that cycle is done, move to next one
+			path->push_back(currVertex);
+            if (path->size() >= minVertices * 2)
+                count += (path->size() / minVertices) - 1; 
+			std::vector<int>* aux = removeEqual(*path);
+			aux->push_back(initialVertex);
+			allPaths.push_back(aux);
+			path = new std::vector<int>;
+			initialVertex = *unvisitedVertices.begin();
+			currVertex = initialVertex;
+			unvisitedVertices.erase(currVertex);
+		}
+	}
+    if (path->size() >= minVertices * 2)
+                count += (path->size() / minVertices) - 1; 
+
+    return count;
 }
 
 int main(int argc, char* argv[]){
@@ -544,8 +656,9 @@ int main(int argc, char* argv[]){
 
     Edges factor2 = two_factor(allEdges); 
 
-    return 0;
     int numCycles2Factor = countCycles(factor2);
+
+    printf("2-factor %d cycles\n", numCycles2Factor);
 
     if (numCycles2Factor == numTrees){
         std::cout << "Solução ótima encontrada." << std::endl;
@@ -557,6 +670,7 @@ int main(int argc, char* argv[]){
         We find a T with is the MST of G. We need to find (q-p) edges in T which we will double and then
         add to F, such that each of these edges connects 2 cycles in F. We guarantee a 3-approximation this way.
     */
+        std::cout << "p < q" << std::endl;
         int numCyclesToAdd = countCyclesMinVertices(factor2, 3);
         if (numCyclesToAdd < (numTrees - numCycles2Factor)){
             std::cout << "Não é possível encontrar solução para esse número de árvores." << std::endl;
@@ -568,6 +682,7 @@ int main(int argc, char* argv[]){
         We find a T with is the MST of G. We need to find (q-p) edges in T which we will double and then
         add to F, such that each of these edges connects 2 cycles in F. We guarantee a 3-approximation this way.
     */
+        std::cout << "p > q" << std::endl;
     }
 	return 0;
 }
