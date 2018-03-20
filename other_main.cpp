@@ -65,13 +65,13 @@ void printEdgesInMatching(Edge* edges, int numEdges, Matching* M){
 }
 
 void printEdges(Edges edges){
-    	int costSum = 0;
+    	double costSum = 0;
 	for(int i=0;i<edges.numEdges;++i){
-		printf("{%d, %d, %d} ", edges.edges[i].v1,edges.edges[i].v2, edges.edges[i].cost);
+		printf("{%d, %d, %.0lf} ", edges.edges[i].v1,edges.edges[i].v2, edges.edges[i].cost);
 		costSum += edges.edges[i].cost;
 	}
 	printf("\n");
-	printf("total cost: %d\n", costSum);
+	printf("total cost: %.0lf\n", costSum);
 }
 
 void printEdgesSimple(Edges edges){
@@ -218,7 +218,6 @@ std::vector<Edge>* removeEqualEdge(std::vector<Edge>& vector){
 	}
 	return returnVector;
 }
-
 
 
 Edges eulerianCircuit(Edges edges, Edges allEdges){
@@ -454,7 +453,7 @@ Edges two_factor(Edges edges){
 	solution.edges = &twoFactor->front();
 	solution.numEdges = twoFactor->size();
 
-    printEdges(solution);
+    //printEdges(solution);
 
     return solution;
 }
@@ -564,9 +563,9 @@ int countCyclesMinVertices(Edges edges, int minVertices){
 		}
 		if (!found){ //that means that that cycle is done, move to next one
 			path->push_back(currVertex);
-            //printf("cycle size %d\n", path->size());
-            if (path->size() >= minVertices * 2)
-                count += (path->size() / minVertices) - 1; 
+            		//printf("cycle size %d\n", path->size());
+            		if (path->size() >= minVertices * 2)
+                		count += (path->size() / minVertices) - 1; 
 			std::vector<int>* aux = removeEqual(*path);
 			aux->push_back(initialVertex);
 			allPaths.push_back(aux);
@@ -582,9 +581,152 @@ int countCyclesMinVertices(Edges edges, int minVertices){
     return count;
 }
 
+std::vector<std::vector<int>*>* breakPath(std::vector<int>* path, int numBreak, int minVertices){
+	std::vector<std::vector<int>*>* allPaths = new std::vector<std::vector<int>*>();
+	int breakPos = 0;
+	std::vector<int>* newPath;
+	for (int i=0;i<numBreak;i++){
+		newPath = new std::vector<int>();
+		for(int j=breakPos; j<breakPos+minVertices; j++){
+			newPath->push_back((*path)[j]);	
+		}
+		newPath->push_back((*path)[breakPos]);
+		allPaths->push_back(newPath);
+		breakPos += minVertices;	
+	}
+	if (breakPos < path->size()){
+		newPath->pop_back();
+		for(int j=breakPos; j<path->size(); j++){
+			newPath->push_back((*path)[j]);	
+		}
+		newPath->push_back((*path)[breakPos-minVertices]);
+	}
+	return allPaths;
+}
 
-Edges countCyclesMinVertices(Edges edges, Edges allEdges, int minVertices, int numToBreak){
+Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
     //similar to the one above and the euclidean circuit, but break as it goes
+	std::set<int> unvisitedVertices;	
+	std::vector<Edge> unvisitedEdges;
+	for(int i=0;i<edges.numEdges;i++){
+		unvisitedEdges.push_back(edges.edges[i]);	
+		unvisitedVertices.insert(edges.edges[i].v1);
+		unvisitedVertices.insert(edges.edges[i].v2);
+	}
+
+	std::vector<Edge>* auxVector = removeEqualEdge(unvisitedEdges);
+	unvisitedEdges = *auxVector;
+	int initialVertex = *unvisitedVertices.begin();
+	int currVertex = initialVertex;
+	unvisitedVertices.erase(currVertex);
+	std::vector<int>* path;
+	path = new std::vector<int>;
+	bool found;
+	int count;
+	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
+	std::vector<std::vector<int>*> allPaths;
+	allPaths.push_back(path);
+	int firstVertexPath = currVertex;
+	while (unvisitedVertices.size() > 0){	
+		found = false;
+		path->push_back(currVertex);
+		for(int i=0;i<unvisitedEdges.size();i++){
+			printf("%d %d -> %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2, currVertex); 
+			if ((unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1) || (unvisitedEdges[i].v2 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v1) == 1) ){ //if begin at currVertex and ends in a unvisitedVertex
+				if (unvisitedEdges[i].v1 == currVertex)
+					currVertex = unvisitedEdges[i].v2;
+				else
+					currVertex = unvisitedEdges[i].v1;
+				edgesUsed->push_back(unvisitedEdges[i]);
+				unvisitedEdges.erase(unvisitedEdges.begin()+i);
+				unvisitedVertices.erase(currVertex);
+				printf("found\n");
+				found = true;
+				break;
+			}
+		}
+		if (!found){ //if no unvisited edge is available, go to some already visited
+			for(int i=0;i<unvisitedEdges.size();i++){
+				if ((unvisitedEdges[i].v1 == currVertex || unvisitedEdges[i].v2 == currVertex)){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					if (unvisitedEdges[i].v1 == currVertex)
+						currVertex = unvisitedEdges[i].v2;
+					else
+						currVertex = unvisitedEdges[i].v1;
+					edgesUsed->push_back(unvisitedEdges[i]);
+					unvisitedEdges.erase(unvisitedEdges.begin()+i);
+					found = true;
+					break;
+				}
+			}
+		}
+		if (!found){ //that means that that cycle is done, move to next one
+			printf("new path\n");
+			//path->push_back(firstVertexPath);
+			std::vector<int>* aux = removeEqual(*path);
+			path = aux;
+			if (numToBreak > 0 && path->size() >= minVertices * 2){
+                		count = fmin((path->size() / minVertices) - 1, numToBreak); 
+				numToBreak -= count;
+				printf("break %d cycles\n", count);
+				//when I use count + 1, it means that I want to add count cycles, but the result should be count + 1 cycles, since it is currently just one
+				std::vector<std::vector<int>*>* brokenPaths = breakPath(path, count+1, 3);	
+				assert(brokenPaths->size() == count+1);
+				for (int k=0;k<count+1; k++){
+					for(int p=0;p<(*brokenPaths)[k]->size();p++)
+						printf("%d ", (*brokenPaths)[k]->at(p));	
+					printf("\n");
+					allPaths.push_back((*brokenPaths)[k]);
+				}
+			}else{
+				path->push_back(initialVertex);
+				allPaths.push_back(path);
+			}
+			path = new std::vector<int>;
+			initialVertex = *unvisitedVertices.begin();
+			currVertex = initialVertex;
+			firstVertexPath = currVertex;
+			unvisitedVertices.erase(currVertex);
+		}
+	}
+	path->push_back(currVertex);
+	std::vector<int>* aux = path;
+	aux->push_back(initialVertex);
+	allPaths.push_back(aux);
+
+	//shortcut
+	std::vector<Edge>* edgesInPath = new std::vector<Edge>();
+	std::vector<int>* shortcutPath;	
+	int j;
+	printf("\n\n");
+	allPaths.erase(allPaths.begin()); //delete first one, do not ask why
+	for(int k=0;k<allPaths.size();++k){
+		shortcutPath = allPaths[k];	
+		for(int i=0;i<shortcutPath->size();++i)
+			printf("%d ", *(shortcutPath->begin()+i) );
+		printf("\n");
+		for(int i=0;i<shortcutPath->size()-1;++i){
+			for(j=0;j<allEdges.numEdges;++j){
+				if (allEdges.edges[j].v1 == *(shortcutPath->begin()+i) && allEdges.edges[j].v2 == *(shortcutPath->begin()+i+1)){
+					edgesInPath->push_back(allEdges.edges[j]);
+					break;
+				}
+			}
+			
+			if (j == allEdges.numEdges){
+				for(int k=0;k<shortcutPath->size();++k)
+					printf("%d ", *(shortcutPath->begin()+k) );
+				printf("\ncould not find edge %d %d\n", *(shortcutPath->begin()+i), *(shortcutPath->begin()+i+1) );
+				assert(0==1); //it did not find the correct edge
+			}
+			
+		}
+	}
+
+	//edgesInPath = removeEqualEdge(*edgesInPath);
+	Edges circuit;
+	circuit.edges = &edgesInPath->front();
+	circuit.numEdges = edgesInPath->size();
+	return circuit;
 }
 
 int main(int argc, char* argv[]){
@@ -664,7 +806,9 @@ int main(int argc, char* argv[]){
 
     int numCycles2Factor = countCycles(factor2);
 
-    printf("2-factor %d cycles\n", numCycles2Factor);
+    //printf("2-factor %d cycles\n", numCycles2Factor);
+
+    printEdges(factor2);
 
     if (numCycles2Factor == numTrees){
         std::cout << "Solução ótima encontrada." << std::endl;
@@ -677,14 +821,16 @@ int main(int argc, char* argv[]){
         and (c,d) and then adding edges (a,c) and (b,d), for example. Therefore there's a limit to how many trees we
         can guarantee in this case. We guarantee a 2-approximation this way.
     */
-        std::cout << "p < q" << std::endl;
+        //std::cout << "p < q" << std::endl;
         int numCyclesToAdd = countCyclesMinVertices(factor2, 3);
-        printf("can add up to %d cycles\n", numCyclesToAdd);
+        //printf("can add up to %d cycles\n", numCyclesToAdd);
         if (numCyclesToAdd < (numTrees - numCycles2Factor)){
             std::cout << "Não é possível encontrar solução para esse número de árvores." << std::endl;
             return 0;
         }
-        
+
+	factor2 = breakCycles(factor2, doubleEdges(allEdges), 3, numCyclesToAdd);
+        printEdges(factor2);
 
     }else{
     /*
