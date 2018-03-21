@@ -219,6 +219,26 @@ std::vector<Edge>* removeEqualEdge(std::vector<Edge>& vector){
 	return returnVector;
 }
 
+Edges removeEqualEdge(Edges vector){
+	std::vector<Edge>* returnVector = new std::vector<Edge>();
+	bool found;
+	for(int i=0;i<vector.numEdges;++i){
+		found = false;
+		for(int j=0;j<returnVector->size();++j){
+			if (*(returnVector->begin()+j) == vector.edges[i]){
+				found = true;
+				break;
+			}
+		}
+		if (!found){
+			returnVector->push_back(vector.edges[i]);
+		}
+	}
+	Edges ret;
+	ret.edges=&returnVector->front();
+	ret.numEdges=returnVector->size();
+	return ret;
+}
 
 Edges eulerianCircuit(Edges edges, Edges allEdges){
 	std::set<int> unvisitedVertices;	
@@ -459,8 +479,6 @@ Edges two_factor(Edges edges){
 }
 
 int countCycles(Edges edges){
-    int count = 1;
-
     std::set<int> unvisitedVertices;	
 	std::vector<Edge> unvisitedEdges;
 	for(int i=0;i<edges.numEdges;i++){
@@ -477,12 +495,16 @@ int countCycles(Edges edges){
 	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
 	std::vector<std::vector<int>*> allPaths;
 	allPaths.push_back(path);
+
 	while (unvisitedVertices.size() > 0){	
 		found = false;
 		path->push_back(currVertex);
 		for(int i=0;i<unvisitedEdges.size();i++){
-			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
-				currVertex = unvisitedEdges[i].v2;
+			if ((unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1) || (unvisitedEdges[i].v2 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v1) == 1) ){ //if begin at currVertex and ends in a unvisitedVertex
+				if (unvisitedEdges[i].v1 == currVertex)
+					currVertex = unvisitedEdges[i].v2;
+				else
+					currVertex = unvisitedEdges[i].v1;
 				edgesUsed->push_back(unvisitedEdges[i]);
 				unvisitedEdges.erase(unvisitedEdges.begin()+i);
 				unvisitedVertices.erase(currVertex);
@@ -492,8 +514,11 @@ int countCycles(Edges edges){
 		}
 		if (!found){ //if no unvisited edge is available, go to some already visited
 			for(int i=0;i<unvisitedEdges.size();i++){
-				if (unvisitedEdges[i].v1 == currVertex){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
-					currVertex = unvisitedEdges[i].v2;
+				if ((unvisitedEdges[i].v1 == currVertex || unvisitedEdges[i].v2 == currVertex)){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					if (unvisitedEdges[i].v1 == currVertex)
+						currVertex = unvisitedEdges[i].v2;
+					else
+						currVertex = unvisitedEdges[i].v1;
 					edgesUsed->push_back(unvisitedEdges[i]);
 					unvisitedEdges.erase(unvisitedEdges.begin()+i);
 					found = true;
@@ -502,11 +527,11 @@ int countCycles(Edges edges){
 			}
 		}
 		if (!found){ //that means that that cycle is done, move to next one
-            count++;
-			path->push_back(currVertex);
+			//path->push_back(firstVertexPath);
 			std::vector<int>* aux = removeEqual(*path);
-			aux->push_back(initialVertex);
-			allPaths.push_back(aux);
+			path = aux;
+			path->push_back(initialVertex);
+			allPaths.push_back(path);
 			path = new std::vector<int>;
 			initialVertex = *unvisitedVertices.begin();
 			currVertex = initialVertex;
@@ -514,10 +539,10 @@ int countCycles(Edges edges){
 		}
 	}
 
-    return count;
+    return allPaths.size();
 }
 
-int countCyclesMinVertices(Edges edges, int minVertices){
+int countCyclesMinVertices(Edges edges, int minVertices){ //this count might be wrong
     //for every cycle with more than (minVertices*2), result += (floor(numCycles / minVertices) - 1)
     int count = 0;
 
@@ -541,8 +566,11 @@ int countCyclesMinVertices(Edges edges, int minVertices){
 		found = false;
 		path->push_back(currVertex);
 		for(int i=0;i<unvisitedEdges.size();i++){
-			if (unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
-				currVertex = unvisitedEdges[i].v2;
+			if ((unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1) || (unvisitedEdges[i].v2 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v1) == 1) ){ //if begin at currVertex and ends in a unvisitedVertex
+				if (unvisitedEdges[i].v1 == currVertex)
+					currVertex = unvisitedEdges[i].v2;
+				else
+					currVertex = unvisitedEdges[i].v1;
 				edgesUsed->push_back(unvisitedEdges[i]);
 				unvisitedEdges.erase(unvisitedEdges.begin()+i);
 				unvisitedVertices.erase(currVertex);
@@ -552,8 +580,11 @@ int countCyclesMinVertices(Edges edges, int minVertices){
 		}
 		if (!found){ //if no unvisited edge is available, go to some already visited
 			for(int i=0;i<unvisitedEdges.size();i++){
-				if (unvisitedEdges[i].v1 == currVertex){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
-					currVertex = unvisitedEdges[i].v2;
+				if ((unvisitedEdges[i].v1 == currVertex || unvisitedEdges[i].v2 == currVertex)){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					if (unvisitedEdges[i].v1 == currVertex)
+						currVertex = unvisitedEdges[i].v2;
+					else
+						currVertex = unvisitedEdges[i].v1;
 					edgesUsed->push_back(unvisitedEdges[i]);
 					unvisitedEdges.erase(unvisitedEdges.begin()+i);
 					found = true;
@@ -561,6 +592,7 @@ int countCyclesMinVertices(Edges edges, int minVertices){
 				}
 			}
 		}
+
 		if (!found){ //that means that that cycle is done, move to next one
 			path->push_back(currVertex);
             		//printf("cycle size %d\n", path->size());
@@ -631,7 +663,7 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 		found = false;
 		path->push_back(currVertex);
 		for(int i=0;i<unvisitedEdges.size();i++){
-			printf("%d %d -> %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2, currVertex); 
+			//printf("%d %d -> %d\n", unvisitedEdges[i].v1, unvisitedEdges[i].v2, currVertex); 
 			if ((unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1) || (unvisitedEdges[i].v2 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v1) == 1) ){ //if begin at currVertex and ends in a unvisitedVertex
 				if (unvisitedEdges[i].v1 == currVertex)
 					currVertex = unvisitedEdges[i].v2;
@@ -640,7 +672,7 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 				edgesUsed->push_back(unvisitedEdges[i]);
 				unvisitedEdges.erase(unvisitedEdges.begin()+i);
 				unvisitedVertices.erase(currVertex);
-				printf("found\n");
+				//printf("found\n");
 				found = true;
 				break;
 			}
@@ -660,21 +692,21 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 			}
 		}
 		if (!found){ //that means that that cycle is done, move to next one
-			printf("new path\n");
+			//printf("new path\n");
 			//path->push_back(firstVertexPath);
 			std::vector<int>* aux = removeEqual(*path);
 			path = aux;
 			if (numToBreak > 0 && path->size() >= minVertices * 2){
                 		count = fmin((path->size() / minVertices) - 1, numToBreak); 
 				numToBreak -= count;
-				printf("break %d cycles\n", count);
+				//printf("break %d cycles\n", count);
 				//when I use count + 1, it means that I want to add count cycles, but the result should be count + 1 cycles, since it is currently just one
 				std::vector<std::vector<int>*>* brokenPaths = breakPath(path, count+1, 3);	
 				assert(brokenPaths->size() == count+1);
 				for (int k=0;k<count+1; k++){
-					for(int p=0;p<(*brokenPaths)[k]->size();p++)
-						printf("%d ", (*brokenPaths)[k]->at(p));	
-					printf("\n");
+					//for(int p=0;p<(*brokenPaths)[k]->size();p++)
+						//printf("%d ", (*brokenPaths)[k]->at(p));	
+					//printf("\n");
 					allPaths.push_back((*brokenPaths)[k]);
 				}
 			}else{
@@ -697,13 +729,13 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 	std::vector<Edge>* edgesInPath = new std::vector<Edge>();
 	std::vector<int>* shortcutPath;	
 	int j;
-	printf("\n\n");
+	//printf("\n\n");
 	allPaths.erase(allPaths.begin()); //delete first one, do not ask why
 	for(int k=0;k<allPaths.size();++k){
 		shortcutPath = allPaths[k];	
-		for(int i=0;i<shortcutPath->size();++i)
-			printf("%d ", *(shortcutPath->begin()+i) );
-		printf("\n");
+		//for(int i=0;i<shortcutPath->size();++i)
+		//	printf("%d ", *(shortcutPath->begin()+i) );
+		//printf("\n");
 		for(int i=0;i<shortcutPath->size()-1;++i){
 			for(j=0;j<allEdges.numEdges;++j){
 				if (allEdges.edges[j].v1 == *(shortcutPath->begin()+i) && allEdges.edges[j].v2 == *(shortcutPath->begin()+i+1)){
@@ -802,11 +834,11 @@ int main(int argc, char* argv[]){
 
     //start the algorithm here
 
-    Edges factor2 = two_factor(allEdges); 
+    Edges factor2 = removeEqualEdge(two_factor(allEdges)); 
 
     int numCycles2Factor = countCycles(factor2);
 
-    //printf("2-factor %d cycles\n", numCycles2Factor);
+    printf("2-factor %d cycles\n", numCycles2Factor);
 
     printEdges(factor2);
 
@@ -828,7 +860,7 @@ int main(int argc, char* argv[]){
             std::cout << "Não é possível encontrar solução para esse número de árvores." << std::endl;
             return 0;
         }
-
+	printf("Solution with %d cycles\n", numTrees);
 	factor2 = breakCycles(factor2, doubleEdges(allEdges), 3, numCyclesToAdd);
         printEdges(factor2);
 
