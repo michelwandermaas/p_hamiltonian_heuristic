@@ -97,7 +97,7 @@ void ordenarArestas(Edge* edges, int numEdges){
 	qsort (edges, numEdges, sizeof(Edge), compareEdges);
 }
 
-Edges getMST(Edges edges, double cost){
+Edges getMST(Edges edges){
 	/*
 	 *      Vn = vertices incident to a nonpositive weight edge
      * 		En = edges with both endpoints in Vn
@@ -107,23 +107,12 @@ Edges getMST(Edges edges, double cost){
 	std::set<int> Vn; //Vn = vertices incident to a nonpositive weight edge
 	std::vector<Edge> En; //En = edges with both endpoints in Vn
 	for(int i=0;i<edges.numEdges;i++){
-		if (edges.edges[i].cost <= cost){ //this is equivalent to checking if the new cost is less than or equal to zero
-			Vn.insert(edges.edges[i].v1);
-			Vn.insert(edges.edges[i].v2);
-		}
+		Vn.insert(edges.edges[i].v1);
+		Vn.insert(edges.edges[i].v2);
 	}
 
 	for(int i=0;i<edges.numEdges;i++){
-		if (Vn.count(edges.edges[i].v1) == 1 && Vn.count(edges.edges[i].v2) == 1){ //both endpoints in Vn
-			En.push_back(edges.edges[i]);
-		}
-	}
-
-	if (Vn.size() == 0 || En.size() == 0){ //it might never happen
-		printf("Nothing for MST.\n");
-		result.edges = NULL;
-		result.numEdges = 0;
-		return result;
+		En.push_back(edges.edges[i]);
 	}
 
 	//prepare structures to call MST
@@ -138,8 +127,9 @@ Edges getMST(Edges edges, double cost){
 	for(int i=0;i<En.size();i++){
 		uE[i] = std::distance(Vn.begin(),Vn.find(En[i].v1));
 		vE[i] = std::distance(Vn.begin(),Vn.find(En[i].v2));
-		c[i] = En[i].cost - cost;
+		c[i] = En[i].cost;
 	}
+
 	MST mst(numVerticesMST, numEdgesMST, uE, vE, c);
 	mst.SolveKruskal();
 
@@ -147,23 +137,9 @@ Edges getMST(Edges edges, double cost){
 	result.edges = edgesResult;
 	int numEdges = 0;
 
-	std::vector<Edge> zeroCostEdges; 
-
-	std::set<int> verticesLeftToCover(Vn);
-
 	for(int i = 0; i < numVerticesMST-1; i++){
-		if (c[mst.sol[i]] <= 0){ //only add nonpositive edges
-			edgesResult[numEdges++] = En[mst.sol[i]];
-			verticesLeftToCover.erase(En[mst.sol[i]].v1);
-			verticesLeftToCover.erase(En[mst.sol[i]].v2);
-		}else if (c[mst.sol[i]] == cost){
-			zeroCostEdges.push_back(En[mst.sol[i]]);
-		}
+		edgesResult[numEdges++] = En[mst.sol[i]];
 	}
-
-	//if (zeroCostEdges.size() > 0){
-		//printf("opa, tem custo zero aqui. %d vertices to cover", verticesLeftToCover.size());		
-	//}	
 
 	result.numEdges = numEdges;
 	return result;
@@ -761,6 +737,77 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 	return circuit;
 }
 
+int addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
+	/*beginning is just like the countCycles.
+	then with the paths set up, I will go over the mst edges in cost order
+	and I will add edges (doubled) that are between two cycles, and merge the paths until I have
+	merged the right number of cycles.
+	*/
+	std::set<int> unvisitedVertices;	
+	std::vector<Edge> unvisitedEdges;
+	for(int i=0;i<two_factor_sol.numEdges;i++){
+		unvisitedEdges.push_back(two_factor_sol.edges[i]);	
+		unvisitedVertices.insert(two_factor_sol.edges[i].v1);
+		unvisitedVertices.insert(two_factor_sol.edges[i].v2);
+	}
+	int initialVertex = *unvisitedVertices.begin();
+	int currVertex = initialVertex;
+	unvisitedVertices.erase(currVertex);
+	std::vector<int>* path;
+	path = new std::vector<int>;
+	bool found;
+	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
+	std::vector<std::vector<int>*> allPaths;
+	allPaths.push_back(path);
+
+	while (unvisitedVertices.size() > 0){	
+		found = false;
+		path->push_back(currVertex);
+		for(int i=0;i<unvisitedEdges.size();i++){
+			if ((unvisitedEdges[i].v1 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v2) == 1) || (unvisitedEdges[i].v2 == currVertex && unvisitedVertices.count(unvisitedEdges[i].v1) == 1) ){ //if begin at currVertex and ends in a unvisitedVertex
+				if (unvisitedEdges[i].v1 == currVertex)
+					currVertex = unvisitedEdges[i].v2;
+				else
+					currVertex = unvisitedEdges[i].v1;
+				edgesUsed->push_back(unvisitedEdges[i]);
+				unvisitedEdges.erase(unvisitedEdges.begin()+i);
+				unvisitedVertices.erase(currVertex);
+				found = true;
+				break;
+			}
+		}
+		if (!found){ //if no unvisited edge is available, go to some already visited
+			for(int i=0;i<unvisitedEdges.size();i++){
+				if ((unvisitedEdges[i].v1 == currVertex || unvisitedEdges[i].v2 == currVertex)){// && unvisitedVertices.count(edges.edges[i].v2) == 1){ //if begin at currVertex and ends in a unvisitedVertex
+					if (unvisitedEdges[i].v1 == currVertex)
+						currVertex = unvisitedEdges[i].v2;
+					else
+						currVertex = unvisitedEdges[i].v1;
+					edgesUsed->push_back(unvisitedEdges[i]);
+					unvisitedEdges.erase(unvisitedEdges.begin()+i);
+					found = true;
+					break;
+				}
+			}
+		}
+		if (!found){ //that means that that cycle is done, move to next one
+			//path->push_back(firstVertexPath);
+			std::vector<int>* aux = removeEqual(*path);
+			path = aux;
+			path->push_back(initialVertex);
+			allPaths.push_back(path);
+			path = new std::vector<int>;
+			initialVertex = *unvisitedVertices.begin();
+			currVertex = initialVertex;
+			unvisitedVertices.erase(currVertex);
+		}
+	}
+
+    return allPaths.size();
+
+}
+
+
 int main(int argc, char* argv[]){
 
 	int minArg = 3, maxArg = 3;
@@ -871,6 +918,7 @@ int main(int argc, char* argv[]){
         add to F, such that each of these edges connects 2 cycles in F. We guarantee a 3-approximation this way.
     */
         std::cout << "p > q" << std::endl;
+	Edges mst = getMST(allEdges);
     }
 	return 0;
 }
