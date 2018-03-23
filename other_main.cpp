@@ -19,6 +19,18 @@ double MIN_COST = 0;
 
 int numVertices;
 
+int compareEdges(const void * a, const void * b)
+{
+  if ( (*(Edge*)a).cost <  (*(Edge*)b).cost ) return -1;
+  if ( (*(Edge*)a).cost == (*(Edge*)b).cost ) return 0;
+  if ( (*(Edge*)a).cost >  (*(Edge*)b).cost ) return 1;
+}
+
+
+void orderEdges(Edge* edges, int numEdges){
+	qsort (edges, numEdges, sizeof(Edge), compareEdges);
+}
+
 Edge* generateRandomCompleteGraph(int numVertices){ //non-direction graph
     //assert(numVertices % 2 == 0);
     Edge* edges = (Edge*) malloc (sizeof(Edge) * numVertices * (numVertices-1));
@@ -86,16 +98,6 @@ void addEdges(Edges edges, Matching* M){
     }
 }
 
-int compareEdges(const void * a, const void * b)
-{
-  if ( (*(Edge*)a).cost <  (*(Edge*)b).cost ) return -1;
-  if ( (*(Edge*)a).cost == (*(Edge*)b).cost ) return 0;
-  if ( (*(Edge*)a).cost >  (*(Edge*)b).cost ) return 1;
-}
-
-void ordenarArestas(Edge* edges, int numEdges){
-	qsort (edges, numEdges, sizeof(Edge), compareEdges);
-}
 
 Edges getMST(Edges edges){
 	/*
@@ -737,7 +739,7 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 	return circuit;
 }
 
-int addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
+Edges addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 	/*beginning is just like the countCycles.
 	then with the paths set up, I will go over the mst edges in cost order
 	and I will add edges (doubled) that are between two cycles, and merge the paths until I have
@@ -803,8 +805,56 @@ int addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 		}
 	}
 
-    return allPaths.size();
+	Edges result;
+	result.numEdges = two_factor_sol.numEdges;// + (cycleToReduce*2)
+	Edge* resultEdges = new Edge[result.numEdges + (cyclesToReduce*2)];
+	result.edges = resultEdges;
 
+	orderEdges(two_factor_sol.edges, two_factor_sol.numEdges); //order edges to add
+
+	for(int i=0;i<two_factor_sol.numEdges;++i)
+		resultEdges[i] = two_factor_sol.edges[i];
+
+
+	//TODO: this can be done efficently, not this way
+	//it should be done in a manner similar to the MST idea to avoid cycles
+	int numAdded = 0;
+	for(int i=0;i<mst.numEdges;++i){
+		int v1 = mst.edges[i].v1;
+		int v2 = mst.edges[i].v2;
+		std::vector<int>* path1;
+		std::vector<int>* path2;
+		int path2_pos = 0;
+		for(int j=0;j<allPaths.size();++j){
+			for(int k=0;k<allPaths[j]->size();++k){
+				if ((*allPaths[j])[k] == v1)
+					path1 = allPaths[j];		
+				if ((*allPaths[j])[k] == v2){
+					path2 = allPaths[j];	
+					path2_pos = k;
+				}	
+			}
+		}
+		if (path1 != path2){ //they are in different cycles
+			numAdded++;
+			printf("%d\n", result.numEdges);
+			result.edges[result.numEdges++] = mst.edges[i];
+			Edge invertEdge;
+			invertEdge.v1 = v2;
+			invertEdge.v2 = v1;
+			invertEdge.cost = mst.edges[i].cost;
+			result.edges[result.numEdges++] = invertEdge;
+			//merge paths
+			for(int k=0;k<path2->size();++k){
+				path1->push_back((*path2)[k]);
+			}
+			allPaths.erase(allPaths.begin()+path2_pos);
+		}	
+		if (numAdded == cyclesToReduce)
+			break;
+	}
+	
+	return result;
 }
 
 
@@ -909,6 +959,7 @@ int main(int argc, char* argv[]){
         }
 	printf("Solution with %d cycles\n", numTrees);
 	factor2 = breakCycles(factor2, doubleEdges(allEdges), 3, numCyclesToAdd);
+	assert(countCycles(factor2) == numTrees);
         printEdges(factor2);
 
     }else{
@@ -919,6 +970,8 @@ int main(int argc, char* argv[]){
     */
         std::cout << "p > q" << std::endl;
 	Edges mst = getMST(allEdges);
+	Edges sol = addMSTEdges(factor2, mst, numCycles2Factor - numTrees);
+        printEdges(sol);
     }
-	return 0;
+    return 0;
 }
