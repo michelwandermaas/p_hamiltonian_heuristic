@@ -303,6 +303,38 @@ void printEdges(Edge* edges, int numEdges){
 		printf("%d %d %lf\n", edges[i].v1, edges[i].v2, edges[i].cost);
 }
 
+double euclideanDistance(double x1, double y1, double x2, double y2){
+	return sqrt( ( (x1 - x2)*(x1 - x2) )+( (y1 - y2)*(y1 - y2) ) );
+}
+
+Edges readEdgesTwo(char* filename){
+	FILE* pFile = fopen(filename,"r");	
+	fscanf(pFile, "%d\n", &numVertices);
+	printf("num: %d\n", numVertices);
+	double xValues[numVertices];
+	double yValues[numVertices];
+	Edge* edges = (Edge*) malloc (sizeof(Edge) * numVertices * (numVertices-1));
+	Edges edgesReturn;
+	edgesReturn.edges = edges;
+	edgesReturn.numEdges = (numVertices/2) * (numVertices-1); 
+	for (int i=0;i<numVertices; ++i){
+		fscanf(pFile, "%lf %lf\n", &(xValues[i]), &(yValues[i]));
+	}
+	int numEdges = 0;
+	for (int i=0;i<numVertices; ++i){
+		for (int j=i+1;j<numVertices; ++j){
+			//if (i==j) continue;
+			Edge aux;
+			aux.v1 = i;
+			aux.v2 = j;
+			aux.cost = euclideanDistance(xValues[i], yValues[i], xValues[j], yValues[j]);
+			edges[numEdges++] = aux;	
+		}
+	}
+	assert(numEdges == edgesReturn.numEdges);
+	return edgesReturn;
+}
+
 Edges readEdges(char* filename){
 	Graph graph(filename);
 	Edge* edges = (Edge*) malloc (sizeof(Edge) * graph.n * (graph.n-1));
@@ -529,7 +561,6 @@ int countCycles(Edges edges){
 	//			printf("%d ", *(allPaths[k]->begin()+i) );
 	//		printf("\n");
 	//}
-
 
     return allPaths.size();
 }
@@ -772,7 +803,7 @@ Edges addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 	int currVertex = initialVertex;
 	unvisitedVertices.erase(currVertex);
 	std::vector<int>* path;
-	path = new std::vector<int>;
+	path = new std::vector<int>();
 	bool found;
 	std::vector<Edge>* edgesUsed = new std::vector<Edge>();
 	std::vector<std::vector<int>*> allPaths;
@@ -821,6 +852,13 @@ Edges addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 		}
 	}
 
+	path->push_back(currVertex);
+	std::vector<int>* aux = removeEqual(*path);
+	aux->push_back(initialVertex);
+	allPaths.push_back(aux);
+
+	allPaths.erase(allPaths.begin()); //delete first one, do not ask why
+
 	Edges result;
 	result.numEdges = two_factor_sol.numEdges;// + (cycleToReduce*2)
 	Edge* resultEdges = new Edge[result.numEdges + (cyclesToReduce*2)];
@@ -831,6 +869,44 @@ Edges addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 	for(int i=0;i<two_factor_sol.numEdges;++i)
 		resultEdges[i] = two_factor_sol.edges[i];
 
+//	printf("\n");
+//	printf("\n");
+//	for(int j=0;j<allPaths.size();++j){
+//		printf("\n");
+//		for(int k=0;k<allPaths[j]->size();++k){
+//			printf("%d ",(*allPaths[j])[k]);
+//		}
+//	}
+//	printf("\n");
+//	printf("\n");
+
+	//assert that the graph is covered
+	//for(int i=0;i<mst.numEdges;++i){
+	//	int v1 = mst.edges[i].v1;
+	//	int v2 = mst.edges[i].v2;
+	//	std::vector<int>* path1 = NULL;
+	//	std::vector<int>* path2 = NULL;
+	//	int path2_pos = 0;
+	//	for(int j=0;j<allPaths.size();++j){
+	//		for(int k=0;k<allPaths[j]->size();++k){
+	//			if ((*allPaths[j])[k] == v1)
+	//				path1 = allPaths[j];		
+	//			else if ((*allPaths[j])[k] == v2){
+	//				path2 = allPaths[j];	
+	//				path2_pos = j;
+	//			}
+	//			if (path1 != NULL && path2 != NULL){
+	//				break;
+	//			}	
+	//		}
+	//		if (path1 != NULL && path2 != NULL){
+	//			break;
+	//		}	
+	//	}
+	//	assert(path1 != NULL);
+	//	assert(path2 != NULL);
+	//}	
+
 
 	//TODO: this can be done efficently, not this way
 	//it should be done in a manner similar to the MST idea to avoid cycles
@@ -838,22 +914,40 @@ Edges addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 	for(int i=0;i<mst.numEdges;++i){
 		int v1 = mst.edges[i].v1;
 		int v2 = mst.edges[i].v2;
-		std::vector<int>* path1;
-		std::vector<int>* path2;
+		std::vector<int>* path1 = NULL;
+		std::vector<int>* path2 = NULL;
 		int path2_pos = 0;
+		//printf("%d %d\n", v1, v2);
 		for(int j=0;j<allPaths.size();++j){
 			for(int k=0;k<allPaths[j]->size();++k){
 				if ((*allPaths[j])[k] == v1)
 					path1 = allPaths[j];		
-				if ((*allPaths[j])[k] == v2){
+				else if ((*allPaths[j])[k] == v2){
 					path2 = allPaths[j];	
-					path2_pos = k;
+					path2_pos = j;
+				}
+				if (path1 != NULL && path2 != NULL){
+					break;
 				}	
 			}
+			if (path1 != NULL && path2 != NULL){
+				break;
+			}	
 		}
+		assert(path1 != NULL);
+		assert(path2 != NULL);
+		//printf("Path1 \n");
+		//for(int k=0;k<path1->size();++k){
+		//	printf("%d ",(*path1)[k]);
+		//}
+		//printf("\nPath2\n");
+		//for(int k=0;k<path2->size();++k){
+		//	printf("%d ",(*path2)[k]);
+		//}
+		//printf("\n");
 		if (path1 != path2){ //they are in different cycles
 			numAdded++;
-			printf("%d\n", result.numEdges);
+			//printf("%d\n", result.numEdges);
 			result.edges[result.numEdges++] = mst.edges[i];
 			Edge invertEdge;
 			invertEdge.v1 = v2;
@@ -865,10 +959,27 @@ Edges addMSTEdges(Edges two_factor_sol, Edges mst, int cyclesToReduce){
 				path1->push_back((*path2)[k]);
 			}
 			allPaths.erase(allPaths.begin()+path2_pos);
-		}	
+
+			//printf("\n");
+			//printf("\n");
+			//for(int j=0;j<allPaths.size();++j){
+			//	printf("\n");
+			//	for(int k=0;k<allPaths[j]->size();++k){
+			//		printf("%d ",(*allPaths[j])[k]);
+			//	}
+			//}
+			//printf("\n");
+			//printf("\n");
+
+		}
+		//else{
+		//	printf("same\n");
+		//}	
 		if (numAdded == cyclesToReduce)
 			break;
 	}
+
+	assert(numAdded == cyclesToReduce);
 	
 	return result;
 }
@@ -906,7 +1017,7 @@ int main(int argc, char* argv[]){
 
 	srand (time(NULL));
 
-	Edges allEdges = readEdges((char*)filename.c_str());
+	Edges allEdges = readEdgesTwo((char*)filename.c_str());
 
     if (allEdges.numEdges == 0){
         printf("Error.\n");
@@ -986,6 +1097,7 @@ int main(int argc, char* argv[]){
     */
         std::cout << "p > q" << std::endl;
 	Edges mst = getMST(allEdges);
+	//printEdges(mst);
 	Edges sol = addMSTEdges(factor2, mst, numCycles2Factor - numTrees);
         printEdges(sol);
     }

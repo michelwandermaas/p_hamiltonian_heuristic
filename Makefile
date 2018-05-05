@@ -14,13 +14,13 @@ SOURCES += MST.cpp
 CXXFLAGS = -std=gnu++11 -Wall
 debugfile = hamiltonian_debug
 
-debug: CXXFLAGS += -O0 -g3 -pg
+debug: CXXFLAGS += -O3
 
-other: CXXFLAGS += -O0 -g3 -pg
+other: CXXFLAGS += -O3
 other: EXEC = hamiltonian_other
 other: SOURCES += other_main.cpp
     
-linear: CXXFLAGS += -O3
+linear: CXXFLAGS += -O0 -g3 -pg
 linear: EXEC = hamiltonian_linear
 linear: SOURCES += linear_main.cpp
 
