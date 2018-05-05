@@ -16,7 +16,7 @@ debugfile = hamiltonian_debug
 
 debug: CXXFLAGS += -O3
 
-other: CXXFLAGS += -O3
+other: CXXFLAGS += -O0 -g3 -pg
 other: EXEC = hamiltonian_other
 other: SOURCES += other_main.cpp
     

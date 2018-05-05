@@ -658,6 +658,15 @@ std::vector<std::vector<int>*>* breakPath(std::vector<int>* path, int numBreak, 
 		}
 		newPath->push_back((*path)[breakPos-minVertices]);
 	}
+	
+	//printf("Breaking\n");
+	//for(int i=0;i<allPaths->size();++i){
+	//	for(int j=0;j<(*allPaths)[i]->size();++j){
+	//		printf("%d ", (*(*allPaths)[i])[j]);
+	//	}
+	//	printf("\n");
+	//}
+	//printf("\n");
 	return allPaths;
 }
 
@@ -716,9 +725,9 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
             		//printf("cycle size %d\n", path->size());
 
 			if (numToBreak > 0 && path->size() - 1 >= minVertices * 2){
-                		count = fmin((path->size() / minVertices) - 1, numToBreak); 
+                		count = fmin(( (path->size() - 1) / minVertices) - 1, numToBreak);  //it`s path->size() -1, because the last one is duplicate
 				numToBreak -= count;
-				//printf("break %d cycles\n", count);
+				//printf("path size %d break %d cycles\n",path->size(), count);
 				//when I use count + 1, it means that I want to add count cycles, but the result should be count + 1 cycles, since it is currently just one
 				std::vector<std::vector<int>*>* brokenPaths = breakPath(path, count+1, 3);	
 				assert(brokenPaths->size() == count+1);
@@ -756,6 +765,17 @@ Edges breakCycles(Edges edges, Edges allEdges, int minVertices, int numToBreak){
 
 
 	allPaths.erase(allPaths.begin()); //delete first one, do not ask why
+
+	//for(int k=0;k<allPaths.size();++k){
+	//	shortcutPath = allPaths[k];	
+	//	for(int i=0;i<shortcutPath->size();++i)
+	//		printf("%d ", *(shortcutPath->begin()+i) );
+	//	printf("\n");
+	//}
+	//printf("\n");
+	//printf("\n");
+
+
 	for(int k=0;k<allPaths.size();++k){
 		shortcutPath = allPaths[k];	
 		//for(int i=0;i<shortcutPath->size();++i)
